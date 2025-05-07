@@ -74,7 +74,7 @@ export default function ProfilePage() {
                       id="fullname"
                       value={formData.fullname}
                       onChange={handleChange}
-                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md text-black"
                     />
                   </div>
                 </div>
@@ -90,7 +90,7 @@ export default function ProfilePage() {
                       id="email"
                       value={formData.email}
                       onChange={handleChange}
-                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md text-black"
                     />
                   </div>
                 </div>
@@ -106,7 +106,7 @@ export default function ProfilePage() {
                       id="phone"
                       value={formData.phone}
                       onChange={handleChange}
-                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md text-black"
                     />
                   </div>
                 </div>
@@ -122,7 +122,7 @@ export default function ProfilePage() {
                       id="address"
                       value={formData.address}
                       onChange={handleChange}
-                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md text-black"
                     />
                   </div>
                 </div>
@@ -138,7 +138,7 @@ export default function ProfilePage() {
                       rows={4}
                       value={formData.bio}
                       onChange={handleChange}
-                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md text-black"
                     />
                   </div>
                 </div>

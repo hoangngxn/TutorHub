@@ -76,7 +76,7 @@ export default function CreatePostPage() {
                       maxLength={100}
                       value={formData.title}
                       onChange={handleChange}
-                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md text-black"
                     />
                   </div>
                 </div>
@@ -94,7 +94,7 @@ export default function CreatePostPage() {
                       maxLength={1000}
                       value={formData.description}
                       onChange={handleChange}
-                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md text-black"
                     />
                   </div>
                 </div>
@@ -111,7 +111,7 @@ export default function CreatePostPage() {
                       required
                       value={formData.subject}
                       onChange={handleChange}
-                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md text-black"
                     />
                   </div>
                 </div>
@@ -128,7 +128,7 @@ export default function CreatePostPage() {
                       required
                       value={formData.location}
                       onChange={handleChange}
-                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md text-black"
                     />
                   </div>
                 </div>
@@ -145,7 +145,7 @@ export default function CreatePostPage() {
                       required
                       value={formData.schedule}
                       onChange={handleChange}
-                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md text-black"
                     />
                   </div>
                 </div>
@@ -163,7 +163,7 @@ export default function CreatePostPage() {
                       min={1}
                       value={formData.maxStudent}
                       onChange={handleChange}
-                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md text-black"
                     />
                   </div>
                 </div>
