@@ -42,13 +42,6 @@ export default function Navbar() {
                 {user?.role === 'TUTOR' && (
                   <>
                     <Link
-                      to="/posts/create"
-                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-                    >
-                      <FontAwesomeIcon icon={faPlus} className="mr-2" />
-                      New Post
-                    </Link>
-                    <Link
                       to="/posts/manage"
                       className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-600 bg-white hover:bg-gray-50"
                     >

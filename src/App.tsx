@@ -15,7 +15,6 @@ import CreatePostPage from './pages/posts/CreatePostPage';
 import ManagePostsPage from './pages/posts/ManagePostsPage';
 import EditPostPage from './pages/posts/EditPostPage';
 import BookingManagementPage from './pages/bookings/BookingManagementPage';
-import ReviewsPage from './pages/reviews/ReviewsPage';
 
 function App() {
   return (
@@ -67,14 +66,6 @@ function App() {
                 element={
                   <PrivateRoute>
                     <BookingManagementPage />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/reviews"
-                element={
-                  <PrivateRoute>
-                    <ReviewsPage />
                   </PrivateRoute>
                 }
               />
