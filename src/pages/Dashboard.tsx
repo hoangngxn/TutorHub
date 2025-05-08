@@ -3,8 +3,16 @@ import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faFilter, faUser, faMapMarkerAlt, faClock, faBook, faUsers, faChalkboardTeacher } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faFilter, faUser, faMapMarkerAlt, faClock, faBook, faUsers, faChalkboardTeacher, faGraduationCap } from '@fortawesome/free-solid-svg-icons';
 import ProfilePreview from '../components/user/ProfilePreview';
+
+// Add predefined grades constant
+const GRADES = [
+  "Lớp 1", "Lớp 2", "Lớp 3", "Lớp 4", "Lớp 5",
+  "Lớp 6", "Lớp 7", "Lớp 8", "Lớp 9",
+  "Lớp 10", "Lớp 11", "Lớp 12",
+  "Đại học", "Sau đại học"
+];
 
 interface Post {
   id: string;
@@ -14,6 +22,7 @@ interface Post {
   subject: string;
   location: string;
   schedule: string;
+  grade: string;
   createdAt: string;
   visibility: boolean;
   approvedStudent: number;
@@ -46,6 +55,7 @@ export default function Dashboard() {
   const [bookingStatus, setBookingStatus] = useState<{[key: string]: string}>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
+  const [selectedGrade, setSelectedGrade] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -115,17 +125,21 @@ export default function Dashboard() {
     const value = e.target.value;
     setSearchTerm(value);
     
-    // If search term is cleared, reset subject filter
+    // If search term is cleared, reset filters
     if (value === '') {
       setSelectedSubject('');
+      setSelectedGrade('');
     }
   };
 
   const filteredPosts = posts.filter(post => {
-    // If search term is empty, only apply subject filter
+    // Apply subject and grade filters
+    const matchesSubject = !selectedSubject || post.subject === selectedSubject;
+    const matchesGrade = !selectedGrade || post.grade === selectedGrade;
+    
+    // If search term is empty, only apply subject and grade filters
     if (!searchTerm) {
-      const matchesSubject = !selectedSubject || post.subject === selectedSubject;
-      return matchesSubject;
+      return matchesSubject && matchesGrade;
     }
     
     // Search across all relevant fields
@@ -136,15 +150,15 @@ export default function Dashboard() {
       post.subject.toLowerCase().includes(searchTermLower) ||
       post.location.toLowerCase().includes(searchTermLower) ||
       post.schedule.toLowerCase().includes(searchTermLower) ||
+      (post.grade || '').toLowerCase().includes(searchTermLower) ||
       (post.tutorInfo?.fullname || '').toLowerCase().includes(searchTermLower) ||
       (post.tutorInfo?.username || '').toLowerCase().includes(searchTermLower);
     
-    const matchesSubject = !selectedSubject || post.subject === selectedSubject;
-    
-    return matchesSearch && matchesSubject;
+    return matchesSearch && matchesSubject && matchesGrade;
   });
 
   const subjects = Array.from(new Set(posts.map(post => post.subject)));
+  const grades = Array.from(new Set(posts.map(post => post.grade).filter(Boolean)));
 
   const handleBookingRequest = async (postId: string) => {
     if (!isAuthenticated) {
@@ -259,6 +273,18 @@ export default function Dashboard() {
                   ))}
                 </select>
               </div>
+              <div>
+                <select
+                  value={selectedGrade}
+                  onChange={(e) => setSelectedGrade(e.target.value)}
+                  className="block w-full pl-3 pr-10 py-2 border border-indigo-300 bg-white bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-white focus:border-white sm:text-sm rounded-md text-gray-900"
+                >
+                  <option value="">All Grades</option>
+                  {grades.map(grade => (
+                    <option key={grade} value={grade}>{grade}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -274,6 +300,11 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <span className="font-medium text-indigo-700">{post.subject}</span>
+                  {post.grade && (
+                    <span className="ml-2 text-xs bg-indigo-100 text-indigo-600 py-0.5 px-2 rounded-full">
+                      {post.grade}
+                    </span>
+                  )}
                 </div>
               </div>
               
@@ -292,6 +323,12 @@ export default function Dashboard() {
                     <FontAwesomeIcon icon={faClock} className="flex-shrink-0 mr-2 h-4 w-4 text-gray-500" />
                     <span className="font-medium text-gray-700">Schedule:</span>
                     <span className="ml-2">{post.schedule}</span>
+                  </div>
+                  
+                  <div className="flex items-center text-sm text-gray-600">
+                    <FontAwesomeIcon icon={faGraduationCap} className="flex-shrink-0 mr-2 h-4 w-4 text-gray-500" />
+                    <span className="font-medium text-gray-700">Grade:</span>
+                    <span className="ml-2">{post.grade || 'Not specified'}</span>
                   </div>
                   
                   <div className="flex items-center text-sm text-gray-600">

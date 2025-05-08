@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEdit, faPlus, faChalkboardTeacher, faUserGraduate, faClock, faMapMarkerAlt, faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faPlus, faChalkboardTeacher, faUserGraduate, faClock, faMapMarkerAlt, faEye, faEyeSlash, faGraduationCap } from '@fortawesome/free-solid-svg-icons';
 
 interface Post {
   id: string;
@@ -12,6 +12,7 @@ interface Post {
   subject: string;
   location: string;
   schedule: string;
+  grade: string;
   createdAt: string;
   visibility: boolean;
   approvedStudent: number;
@@ -132,12 +133,20 @@ export default function ManagePostsPage() {
                       <p className="text-gray-700">{post.description}</p>
                     </div>
 
-                    <div className="mt-4 grid grid-cols-2 gap-4">
+                    <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4">
                       <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
                         <div className="flex items-center">
                           <FontAwesomeIcon icon={faChalkboardTeacher} className="h-5 w-5 text-indigo-500 mr-2" />
                           <span className="text-sm font-medium text-gray-500">Subject:</span>
                           <span className="ml-2 text-sm text-gray-900">{post.subject}</span>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                        <div className="flex items-center">
+                          <FontAwesomeIcon icon={faGraduationCap} className="h-5 w-5 text-indigo-500 mr-2" />
+                          <span className="text-sm font-medium text-gray-500">Grade:</span>
+                          <span className="ml-2 text-sm text-gray-900">{post.grade || 'Not specified'}</span>
                         </div>
                       </div>
 

@@ -17,6 +17,14 @@ const SUBJECTS = [
   "Tin học"
 ];
 
+// Predefined grades
+const GRADES = [
+  "Lớp 1", "Lớp 2", "Lớp 3", "Lớp 4", "Lớp 5",
+  "Lớp 6", "Lớp 7", "Lớp 8", "Lớp 9",
+  "Lớp 10", "Lớp 11", "Lớp 12",
+  "Đại học", "Sau đại học"
+];
+
 export default function CreatePostPage() {
   const navigate = useNavigate();
   const { token } = useAuth();
@@ -26,6 +34,7 @@ export default function CreatePostPage() {
     subject: SUBJECTS[0],
     location: '',
     schedule: '',
+    grade: GRADES[0],
     visibility: true,
     maxStudent: 1
   });
@@ -134,6 +143,28 @@ export default function CreatePostPage() {
                     {SUBJECTS.map(subject => (
                       <option key={subject} value={subject}>
                         {subject}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="grade" className="block text-sm font-medium text-gray-700">
+                  Education Grade Level
+                </label>
+                <div className="mt-1">
+                  <select
+                    name="grade"
+                    id="grade"
+                    required
+                    value={formData.grade}
+                    onChange={handleChange}
+                    className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-2 border-gray-300 rounded-md p-2.5 text-black transition-colors bg-white"
+                  >
+                    {GRADES.map(grade => (
+                      <option key={grade} value={grade}>
+                        {grade}
                       </option>
                     ))}
                   </select>

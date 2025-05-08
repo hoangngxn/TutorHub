@@ -17,12 +17,21 @@ const SUBJECTS = [
   "Tin học"
 ];
 
+// Predefined grades
+const GRADES = [
+  "Lớp 1", "Lớp 2", "Lớp 3", "Lớp 4", "Lớp 5",
+  "Lớp 6", "Lớp 7", "Lớp 8", "Lớp 9",
+  "Lớp 10", "Lớp 11", "Lớp 12",
+  "Đại học", "Sau đại học"
+];
+
 interface PostData {
   title: string;
   description: string;
   subject: string;
   location: string;
   schedule: string;
+  grade: string;
   visibility: boolean;
   maxStudent: number;
 }
@@ -37,6 +46,7 @@ export default function EditPostPage() {
     subject: SUBJECTS[0],
     location: '',
     schedule: '',
+    grade: GRADES[0],
     visibility: true,
     maxStudent: 1
   });
@@ -63,6 +73,7 @@ export default function EditPostPage() {
           subject: postData.subject,
           location: postData.location,
           schedule: postData.schedule,
+          grade: postData.grade || GRADES[0], // Handle existing posts without grade
           visibility: postData.visibility,
           maxStudent: postData.maxStudent
         });
@@ -191,6 +202,28 @@ export default function EditPostPage() {
                     {SUBJECTS.map(subject => (
                       <option key={subject} value={subject}>
                         {subject}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="grade" className="block text-sm font-medium text-gray-700">
+                  Education Grade Level
+                </label>
+                <div className="mt-1">
+                  <select
+                    name="grade"
+                    id="grade"
+                    required
+                    value={formData.grade}
+                    onChange={handleChange}
+                    className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-2 border-gray-300 rounded-md p-2.5 text-black transition-colors bg-white"
+                  >
+                    {GRADES.map(grade => (
+                      <option key={grade} value={grade}>
+                        {grade}
                       </option>
                     ))}
                   </select>
