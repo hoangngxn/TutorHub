@@ -16,6 +16,21 @@ import ManagePostsPage from './pages/posts/ManagePostsPage';
 import EditPostPage from './pages/posts/EditPostPage';
 import BookingManagementPage from './pages/bookings/BookingManagementPage';
 
+// Admin pages
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminPostsPage from './pages/admin/AdminPostsPage';
+import AdminTutorsPage from './pages/admin/AdminTutorsPage';
+import AdminStudentsPage from './pages/admin/AdminStudentsPage';
+
+// Admin role check higher-order component
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <PrivateRoute requiredRole="ADMIN">
+      {children}
+    </PrivateRoute>
+  );
+};
+
 function App() {
   return (
     <AuthProvider>
@@ -67,6 +82,40 @@ function App() {
                   <PrivateRoute>
                     <BookingManagementPage />
                   </PrivateRoute>
+                }
+              />
+              
+              {/* Admin Routes */}
+              <Route
+                path="/admin/dashboard"
+                element={
+                  <AdminRoute>
+                    <AdminDashboard />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/posts"
+                element={
+                  <AdminRoute>
+                    <AdminPostsPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/tutors"
+                element={
+                  <AdminRoute>
+                    <AdminTutorsPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/students"
+                element={
+                  <AdminRoute>
+                    <AdminStudentsPage />
+                  </AdminRoute>
                 }
               />
             </Routes>

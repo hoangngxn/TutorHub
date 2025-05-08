@@ -7,7 +7,7 @@ interface User {
   id: string;
   username: string;
   email: string;
-  role: 'STUDENT' | 'TUTOR';
+  role: 'STUDENT' | 'TUTOR' | 'ADMIN';
   fullname?: string;
   phone?: string;
   address?: string;

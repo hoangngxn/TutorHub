@@ -12,7 +12,7 @@
     "username": "string",     // 3-20 characters
     "email": "string",       // valid email format
     "password": "string",    // 6-40 characters
-    "role": "string"        // must be either "STUDENT" or "TUTOR"
+    "role": "string"        // must be either "STUDENT", "TUTOR", or "ADMIN"
 }
 ```
 - **Response (200 OK)**:
@@ -124,6 +124,7 @@
     "subject": "string",
     "location": "string",
     "schedule": "string",
+    "grade": "string",        // education grade level
     "visibility": "boolean",   // true for public, false for private
     "maxStudent": "number"     // minimum 1
 }
@@ -148,6 +149,7 @@
         "subject": "string",
         "location": "string",
         "schedule": "string",
+        "grade": "string",
         "createdAt": "string",
         "visibility": "boolean",
         "approvedStudent": "number",  // count of confirmed bookings
@@ -161,6 +163,30 @@
 - **Access**: Public
 - **Description**: Get all posts by a specific tutor
 - **Response (200 OK)**: Array of post objects
+
+### Get Post by ID
+- **Route**: `GET /api/posts/{postId}`
+- **Access**: Public
+- **Description**: Get a specific post by its ID
+- **Response (200 OK)**:
+```json
+{
+    "id": "string",
+    "userId": "string",
+    "title": "string",
+    "description": "string",
+    "subject": "string",
+    "location": "string",
+    "schedule": "string",
+    "grade": "string",
+    "createdAt": "string",
+    "visibility": "boolean",
+    "approvedStudent": "number",
+    "maxStudent": "number"
+}
+```
+- **Error Responses**:
+  - `404 Not Found`: If post doesn't exist
 
 ### Update Post
 - **Route**: `PUT /api/posts/{postId}`
@@ -176,6 +202,7 @@
     "subject": "string",       // optional
     "location": "string",      // optional
     "schedule": "string",      // optional
+    "grade": "string",         // optional, education grade level
     "visibility": "boolean",   // optional, true for public, false for private
     "maxStudent": "number"     // optional, minimum 1
 }
@@ -336,6 +363,109 @@
 - **Error Responses**:
   - `403 Forbidden`: If user is not associated with this booking
   - `404 Not Found`: If review or booking doesn't exist
+
+## Admin Endpoints
+
+### Get Users (with optional filtering)
+- **Route**: `GET /api/admin/users`
+- **Access**: Authenticated admin users only
+- **Description**: Get a list of all users in the system, with optional role filtering
+- **Headers**: 
+  - `Authorization: Bearer <jwt_token>`
+- **Query Parameters**:
+  - `role`: Optional, filter users by role ("STUDENT", "TUTOR", or "ADMIN")
+- **Response (200 OK)**:
+```json
+[
+    {
+        "id": "string",
+        "username": "string",
+        "email": "string",
+        "role": "string",
+        "fullname": "string",
+        "phone": "string",
+        "address": "string",
+        "avatar": "string",
+        "bio": "string"
+    }
+]
+```
+- **Error Responses**:
+  - `403 Forbidden`: If user is not an admin
+
+### Delete User
+- **Route**: `DELETE /api/admin/users/{userId}`
+- **Access**: Authenticated admin users only
+- **Description**: Delete a user from the system
+- **Headers**: 
+  - `Authorization: Bearer <jwt_token>`
+- **Response (200 OK)**: Empty response
+- **Error Responses**:
+  - `403 Forbidden`: If user is not an admin
+  - `404 Not Found`: If user with the specified ID doesn't exist
+
+### Get All Posts (Admin)
+- **Route**: `GET /api/admin/posts`
+- **Access**: Authenticated admin users only
+- **Description**: Get all posts with admin privileges
+- **Headers**: 
+  - `Authorization: Bearer <jwt_token>`
+- **Response (200 OK)**: Array of post objects
+- **Error Responses**:
+  - `403 Forbidden`: If user is not an admin
+
+### Update Post (Admin)
+- **Route**: `PUT /api/admin/posts/{postId}`
+- **Access**: Authenticated admin users only
+- **Description**: Update any post with admin privileges (no ownership check)
+- **Headers**: 
+  - `Authorization: Bearer <jwt_token>`
+- **Request Body**:
+```json
+{
+    "title": "string",         // optional, 5-100 characters
+    "description": "string",   // optional, max 1000 characters
+    "subject": "string",       // optional
+    "location": "string",      // optional
+    "schedule": "string",      // optional
+    "grade": "string",         // optional, education grade level
+    "visibility": "boolean",   // optional, true for public, false for private
+    "maxStudent": "number"     // optional, minimum 1
+}
+```
+- **Response (200 OK)**: Updated post object
+- **Error Responses**:
+  - `403 Forbidden`: If user is not an admin
+  - `404 Not Found`: If post doesn't exist
+
+### Delete Post (Admin)
+- **Route**: `DELETE /api/admin/posts/{postId}`
+- **Access**: Authenticated admin users only
+- **Description**: Delete any post with admin privileges
+- **Headers**: 
+  - `Authorization: Bearer <jwt_token>`
+- **Response (200 OK)**: Empty response
+- **Error Responses**:
+  - `403 Forbidden`: If user is not an admin
+  - `404 Not Found`: If post doesn't exist
+
+### Get Admin Dashboard Statistics
+- **Route**: `GET /api/admin/stats`
+- **Access**: Authenticated admin users only
+- **Description**: Get dashboard statistics for admin
+- **Headers**: 
+  - `Authorization: Bearer <jwt_token>`
+- **Response (200 OK)**:
+```json
+{
+    "tutorCount": "number",
+    "studentCount": "number",
+    "totalPosts": "number",
+    "activePosts": "number"
+}
+```
+- **Error Responses**:
+  - `403 Forbidden`: If user is not an admin
 
 ## General Information
 

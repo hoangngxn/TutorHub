@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faSignOutAlt, faPlus, faList, faCalendarAlt } from '@fortawesome/free-solid-svg-icons';
+import { faUser, faSignOutAlt, faPlus, faList, faCalendarAlt, faUsers, faChalkboardTeacher, faUserGraduate, faUserShield } from '@fortawesome/free-solid-svg-icons';
 
 export default function Navbar() {
   const { user, logout, isAuthenticated } = useAuth();
@@ -27,18 +27,53 @@ export default function Navbar() {
               >
                 About
               </Link>
-              <Link
-                to="/dashboard"
-                className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-              >
-                Find Tutors
-              </Link>
+              {user?.role !== 'ADMIN' && (
+                <Link
+                  to="/dashboard"
+                  className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                >
+                  Find Tutors
+                </Link>
+              )}
+              {user?.role === 'ADMIN' && (
+                <Link
+                  to="/admin/dashboard"
+                  className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                >
+                  Admin Dashboard
+                </Link>
+              )}
             </div>
           </div>
 
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
+                {user?.role === 'ADMIN' && (
+                  <>
+                    <Link
+                      to="/admin/posts"
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-600 bg-white hover:bg-gray-50"
+                    >
+                      <FontAwesomeIcon icon={faChalkboardTeacher} className="mr-2" />
+                      Manage Posts
+                    </Link>
+                    <Link
+                      to="/admin/tutors"
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-600 bg-white hover:bg-gray-50"
+                    >
+                      <FontAwesomeIcon icon={faUserGraduate} className="mr-2" />
+                      Manage Tutors
+                    </Link>
+                    <Link
+                      to="/admin/students"
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-600 bg-white hover:bg-gray-50"
+                    >
+                      <FontAwesomeIcon icon={faUsers} className="mr-2" />
+                      Manage Students
+                    </Link>
+                  </>
+                )}
                 {user?.role === 'TUTOR' && (
                   <>
                     <Link
@@ -50,13 +85,15 @@ export default function Navbar() {
                     </Link>
                   </>
                 )}
-                <Link
-                  to="/bookings"
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-600 bg-white hover:bg-gray-50"
-                >
-                  <FontAwesomeIcon icon={faCalendarAlt} className="mr-2" />
-                  Bookings
-                </Link>
+                {user?.role !== 'ADMIN' && (
+                  <Link
+                    to="/bookings"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-600 bg-white hover:bg-gray-50"
+                  >
+                    <FontAwesomeIcon icon={faCalendarAlt} className="mr-2" />
+                    Bookings
+                  </Link>
+                )}
                 <Link
                   to="/profile"
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-600 bg-white hover:bg-gray-50"
