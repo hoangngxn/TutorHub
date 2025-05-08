@@ -31,7 +31,7 @@ export default function SignupPage() {
       await signup(formData.username, formData.email, formData.password, formData.role);
       navigate('/dashboard');
     } catch (err) {
-      setError('Failed to create account. Please try again.');
+      setError('Username or email already exists. Please try again.');
     } finally {
       setIsLoading(false);
     }

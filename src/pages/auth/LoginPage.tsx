@@ -26,10 +26,15 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await login(formData.username, formData.password);
-      navigate('/dashboard');
+      const user = await login(formData.username, formData.password);
+      // Redirect admin users to admin dashboard, other users to regular dashboard
+      if (user.role === 'ADMIN') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: any) {
-      setError(err.message || 'Invalid username or password');
+      setError('Invalid username or password');
     } finally {
       setIsLoading(false);
     }

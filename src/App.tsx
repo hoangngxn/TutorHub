@@ -1,8 +1,9 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import PrivateRoute from './components/auth/PrivateRoute';
+import { useAuth } from './contexts/AuthContext';
 
 // Pages
 import LandingPage from './pages/LandingPage';
@@ -31,6 +32,19 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
+// Dashboard route with role-based redirection
+const DashboardRoute = () => {
+  const { user } = useAuth();
+  
+  // Redirect admin users to admin dashboard
+  if (user?.role === 'ADMIN') {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+  
+  // Regular users see the standard dashboard
+  return <Dashboard />;
+};
+
 function App() {
   return (
     <AuthProvider>
@@ -43,7 +57,7 @@ function App() {
               <Route path="/about" element={<AboutPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
-              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard" element={<DashboardRoute />} />
               <Route
                 path="/profile"
                 element={

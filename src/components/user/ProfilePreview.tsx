@@ -20,6 +20,7 @@ interface User {
 interface ReviewStudent {
   id: string;
   username: string;
+  fullname?: string;
   avatar?: string;
 }
 
@@ -163,6 +164,7 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({ userId, onClose }) => {
       return {
         id: student.id,
         username: student.username || `Student ${student.id.substring(0, 5)}`,
+        fullname: student.fullname,
         avatar: student.avatar
       };
     }
@@ -171,6 +173,7 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({ userId, onClose }) => {
     return {
       id: review.studentId || 'unknown',
       username: 'Anonymous Student',
+      fullname: undefined,
       avatar: undefined
     };
   };
@@ -181,7 +184,6 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({ userId, onClose }) => {
         <button
           onClick={onClose}
           className="absolute top-3 right-3 bg-gray-200 hover:bg-gray-300 text-gray-700 hover:text-gray-900 rounded-full p-2 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          style={{ backgroundColor: '#e5e7eb' }}
           aria-label="Close"
         >
           <FontAwesomeIcon icon={faTimes} className="h-4 w-4" />
@@ -284,7 +286,6 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({ userId, onClose }) => {
                 <button 
                   onClick={toggleReviews}
                   className="flex items-center justify-between w-full py-2 text-left text-sm font-medium text-indigo-600 hover:text-indigo-800 focus:outline-none"
-                  style={{ backgroundColor: '#e5e7eb' }}
                 >
                   <span>Student Reviews ({reviews.length})</span>
                   <FontAwesomeIcon 
@@ -309,15 +310,15 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({ userId, onClose }) => {
                                 {studentInfo.avatar ? (
                                   <img 
                                     src={studentInfo.avatar} 
-                                    alt={`${studentInfo.username}'s avatar`}
+                                    alt={`${studentInfo.fullname || studentInfo.username}'s avatar`}
                                     className="h-8 w-8 rounded-full mr-2"
                                   />
                                 ) : (
                                   <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold mr-2">
-                                    {studentInfo.username.charAt(0).toUpperCase()}
+                                    {(studentInfo.fullname || studentInfo.username).charAt(0).toUpperCase()}
                                   </div>
                                 )}
-                                <span className="text-sm font-medium text-gray-900">{studentInfo.username}</span>
+                                <span className="text-sm font-medium text-gray-900">{studentInfo.fullname || studentInfo.username}</span>
                               </div>
                               <span className="text-xs text-gray-500">{formatDate(review.createdAt)}</span>
                             </div>

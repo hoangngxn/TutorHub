@@ -18,7 +18,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<User>;
   signup: (username: string, email: string, password: string, role: 'STUDENT' | 'TUTOR') => Promise<void>;
   logout: () => void;
   updateProfile: (data: Partial<User>) => Promise<void>;
@@ -54,6 +54,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(newToken);
       localStorage.setItem('token', newToken);
       await fetchProfile();
+      
+      // Fetch the profile again to get the complete user data
+      const profileResponse = await api.get('/api/auth/profile');
+      const userData = profileResponse.data;
+      setUser(userData);
+      return userData;
     } catch (error) {
       console.error('Login error:', error);
       throw error;
