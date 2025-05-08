@@ -31,6 +31,7 @@ interface Review {
   rating: number;
   comment: string;
   createdAt: string;
+  postTitle?: string;
   student?: ReviewStudent;
 }
 
@@ -153,8 +154,13 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({ userId, onClose }) => {
 
   const getStudentInfo = (review: Review) => {
     // First try to use the student object from the review
-    if (review.student && review.student.username) {
-      return review.student;
+    if (review.student) {
+      return {
+        id: review.student.id,
+        username: review.student.username,
+        fullname: review.student.fullname,
+        avatar: review.student.avatar
+      };
     }
     
     // Fall back to our locally fetched student info
@@ -324,6 +330,9 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({ userId, onClose }) => {
                             </div>
                             
                             <div className="mt-2">
+                              {review.postTitle && (
+                                <p className="text-xs font-medium text-indigo-600 mb-1">{review.postTitle}</p>
+                              )}
                               <div className="flex items-center">
                                 {renderStars(review.rating)}
                                 <span className="ml-2 text-sm text-gray-700">{review.rating}/5</span>

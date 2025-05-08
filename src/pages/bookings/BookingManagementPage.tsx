@@ -27,11 +27,13 @@ interface EnhancedBooking extends BookingItem {
   studentInfo?: UserInfo;
   tutorInfo?: UserInfo;
   hasReview?: boolean;
+  postTitle?: string;
 }
 
 interface PostGroup {
   postId: string;
   subject: string;
+  postTitle?: string;
   schedule: string;
   bookings: EnhancedBooking[];
 }
@@ -61,6 +63,7 @@ export default function BookingManagementPage() {
           groups[booking.postId] = {
             postId: booking.postId,
             subject: booking.subject,
+            postTitle: booking.postTitle,
             schedule: booking.schedule,
             bookings: []
           };
@@ -91,6 +94,7 @@ export default function BookingManagementPage() {
         let studentInfo: UserInfo | undefined;
         let tutorInfo: UserInfo | undefined;
         let hasReview = false;
+        let postTitle: string | undefined = undefined;
         
         try {
           // Fetch student info
@@ -126,6 +130,15 @@ export default function BookingManagementPage() {
           };
         }
 
+        // Fetch post details to get the title
+        try {
+          const postResponse = await api.get(`/api/posts/${booking.postId}`);
+          postTitle = postResponse.data.title;
+        } catch (error) {
+          console.error(`Error fetching post info for ID ${booking.postId}:`, error);
+          postTitle = booking.subject; // Fallback to subject if post title can't be fetched
+        }
+
         // Check if booking has review (only for completed bookings)
         if (booking.status === 'COMPLETED') {
           try {
@@ -141,7 +154,8 @@ export default function BookingManagementPage() {
           ...booking,
           studentInfo,
           tutorInfo,
-          hasReview
+          hasReview,
+          postTitle
         };
       }));
       
@@ -307,8 +321,11 @@ export default function BookingManagementPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0">
                           <h3 className="text-xl font-semibold text-indigo-600 truncate">
-                            {booking.subject}
+                            {booking.postTitle || booking.subject}
                           </h3>
+                          {booking.postTitle && booking.postTitle !== booking.subject && (
+                            <p className="text-sm text-gray-500 mt-1">{booking.subject}</p>
+                          )}
                         </div>
                         <div className="ml-4 flex-shrink-0">
                           <span className={`inline-flex items-center px-2.5 py-1.5 rounded-full text-xs font-medium ${getStatusBadgeClass(booking.status)}`}>
@@ -337,10 +354,10 @@ export default function BookingManagementPage() {
                         <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
                           <div className="flex items-center">
                             <FontAwesomeIcon icon={faUser} className="h-5 w-5 text-indigo-500 mr-2" />
-                            <span className="text-sm font-medium text-gray-500">Tutor:</span>
+                            <span className="text-sm font-medium text-gray-500">Tutor: </span>
                             <button 
                               onClick={() => handleUserClick(booking.tutorId)}
-                              className="text-indigo-600 hover:text-indigo-900 hover:underline focus:outline-none bg-gray-200 px-3 py-1.5 rounded-md hover:bg-gray-300 transition-colors border border-gray-300"
+                              className="ml-2 text-indigo-600 hover:text-indigo-900 hover:underline focus:outline-none bg-gray-200 px-3 py-1.5 rounded-md hover:bg-gray-300 transition-colors border border-gray-300"
                               style={{ backgroundColor: '#e5e7eb' }}
                             >
                               {booking.tutorInfo?.fullname || booking.tutorInfo?.username || 'Tutor'}
@@ -435,10 +452,13 @@ export default function BookingManagementPage() {
                           <div className="flex items-center">
                             <FontAwesomeIcon icon={faBook} className="h-5 w-5 text-indigo-500 mr-2" />
                             <h3 className="text-xl font-semibold text-indigo-600">
-                              {group.subject}
+                              {group.postTitle || group.subject}
                             </h3>
                           </div>
                           <p className="mt-2 text-sm text-gray-500 flex items-center">
+                            {group.postTitle && group.postTitle !== group.subject && (
+                              <span className="mr-2 text-indigo-500">{group.subject}</span>
+                            )}
                             <FontAwesomeIcon icon={faClock} className="h-4 w-4 text-gray-400 mr-2" />
                             {group.schedule} • {group.bookings.length} bookings
                           </p>
@@ -479,7 +499,7 @@ export default function BookingManagementPage() {
                                       <FontAwesomeIcon icon={faGraduationCap} className="h-5 w-5 text-indigo-500 mr-2" />
                                       <button 
                                         onClick={() => handleUserClick(booking.studentId)}
-                                        className="text-indigo-600 hover:text-indigo-900 hover:underline focus:outline-none bg-gray-200 px-3 py-1.5 rounded-md hover:bg-gray-300 transition-colors border border-gray-300"
+                                        className="ml-1 text-indigo-600 hover:text-indigo-900 hover:underline focus:outline-none bg-gray-200 px-3 py-1.5 rounded-md hover:bg-gray-300 transition-colors border border-gray-300"
                                         style={{ backgroundColor: '#e5e7eb' }}
                                       >
                                         {booking.studentInfo?.fullname || booking.studentInfo?.username || 'Student'}

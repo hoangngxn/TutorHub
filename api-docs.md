@@ -332,6 +332,7 @@
         "rating": "number",
         "comment": "string",
         "createdAt": "string",
+        "postTitle": "string",   // Title of the related post
         "student": {
             "id": "string",
             "username": "string",
@@ -355,6 +356,7 @@
     "rating": "number",
     "comment": "string",
     "createdAt": "string",
+    "postTitle": "string",   // Title of the related post
     "student": {
         "id": "string",
         "username": "string",
