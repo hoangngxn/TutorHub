@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faEnvelope, faPhone, faMapMarkerAlt, faEdit } from '@fortawesome/free-solid-svg-icons';
+import { faUser, faEnvelope, faPhone, faMapMarkerAlt, faEdit, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
 
 export default function ProfilePage() {
   const { user, updateProfile } = useAuth();
@@ -40,29 +40,41 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
-        <div className="bg-white shadow sm:rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div className="bg-indigo-600 py-6 px-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">Profile Information</h3>
+              <div>
+                <h2 className="text-2xl font-bold text-white">
+                  My Profile
+                </h2>
+                <p className="mt-1 text-indigo-100">Manage your personal information</p>
+              </div>
               <button
                 onClick={() => setIsEditing(!isEditing)}
-                className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium 
+                  ${isEditing 
+                    ? 'text-gray-700 bg-white hover:bg-gray-50' 
+                    : 'text-white bg-indigo-700 hover:bg-indigo-800'} 
+                  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors`}
               >
-                <FontAwesomeIcon icon={faEdit} className="mr-2" />
+                <FontAwesomeIcon icon={isEditing ? faTimes : faEdit} className="mr-2" />
                 {isEditing ? 'Cancel' : 'Edit Profile'}
               </button>
             </div>
+          </div>
 
+          <div className="px-6 py-8">
             {error && (
-              <div className="mt-4 bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                <span className="block sm:inline">{error}</span>
+              <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-md mb-6" role="alert">
+                <p className="font-medium">Error</p>
+                <p>{error}</p>
               </div>
             )}
 
             {isEditing ? (
-              <form onSubmit={handleSubmit} className="mt-6 space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <label htmlFor="fullname" className="block text-sm font-medium text-gray-700">
                     Full Name
@@ -74,7 +86,8 @@ export default function ProfilePage() {
                       id="fullname"
                       value={formData.fullname}
                       onChange={handleChange}
-                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md text-black"
+                      placeholder="Enter your full name"
+                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-2 border-gray-300 rounded-md p-2.5 text-black transition-colors"
                     />
                   </div>
                 </div>
@@ -90,7 +103,8 @@ export default function ProfilePage() {
                       id="email"
                       value={formData.email}
                       onChange={handleChange}
-                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md text-black"
+                      placeholder="your.email@example.com"
+                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-2 border-gray-300 rounded-md p-2.5 text-black transition-colors"
                     />
                   </div>
                 </div>
@@ -106,7 +120,8 @@ export default function ProfilePage() {
                       id="phone"
                       value={formData.phone}
                       onChange={handleChange}
-                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md text-black"
+                      placeholder="e.g., +84 123 456 789"
+                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-2 border-gray-300 rounded-md p-2.5 text-black transition-colors"
                     />
                   </div>
                 </div>
@@ -122,7 +137,8 @@ export default function ProfilePage() {
                       id="address"
                       value={formData.address}
                       onChange={handleChange}
-                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md text-black"
+                      placeholder="Your home or office address"
+                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-2 border-gray-300 rounded-md p-2.5 text-black transition-colors"
                     />
                   </div>
                 </div>
@@ -138,59 +154,89 @@ export default function ProfilePage() {
                       rows={4}
                       value={formData.bio}
                       onChange={handleChange}
-                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md text-black"
+                      placeholder="Tell us about yourself, your interests, qualifications, etc."
+                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-2 border-gray-300 rounded-md p-2.5 text-black transition-colors"
                     />
                   </div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {formData.bio.length}/500 characters
+                  </p>
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(false)}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    Cancel
+                  </button>
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                    className="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors"
                   >
-                    {isLoading ? 'Saving...' : 'Save Changes'}
+                    {isLoading ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <FontAwesomeIcon icon={faSave} className="mr-2" />
+                        Save Changes
+                      </>
+                    )}
                   </button>
                 </div>
               </form>
             ) : (
-              <div className="mt-6 space-y-6">
-                <div className="flex items-center">
-                  <FontAwesomeIcon icon={faUser} className="h-5 w-5 text-gray-400 mr-3" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Full Name</p>
-                    <p className="mt-1 text-sm text-gray-900">{user?.fullname || 'Not provided'}</p>
+              <div className="space-y-6">
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <div className="flex items-center">
+                    <div className="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                      <FontAwesomeIcon icon={faUser} className="h-6 w-6" />
+                    </div>
+                    <div className="ml-4">
+                      <h3 className="text-lg font-medium text-gray-900">{user?.fullname || user?.username || 'Unnamed User'}</h3>
+                      <p className="text-sm text-gray-500">{user?.role === 'TUTOR' ? 'Tutor' : 'Student'}</p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-center">
-                  <FontAwesomeIcon icon={faEnvelope} className="h-5 w-5 text-gray-400 mr-3" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Email</p>
-                    <p className="mt-1 text-sm text-gray-900">{user?.email}</p>
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <div className="flex items-center">
+                      <FontAwesomeIcon icon={faEnvelope} className="h-5 w-5 text-indigo-500" />
+                      <h4 className="ml-2 text-sm font-medium text-gray-700">Email</h4>
+                    </div>
+                    <p className="mt-2 text-gray-900">{user?.email || 'Not provided'}</p>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <div className="flex items-center">
+                      <FontAwesomeIcon icon={faPhone} className="h-5 w-5 text-indigo-500" />
+                      <h4 className="ml-2 text-sm font-medium text-gray-700">Phone Number</h4>
+                    </div>
+                    <p className="mt-2 text-gray-900">{user?.phone || 'Not provided'}</p>
                   </div>
                 </div>
-
-                <div className="flex items-center">
-                  <FontAwesomeIcon icon={faPhone} className="h-5 w-5 text-gray-400 mr-3" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Phone Number</p>
-                    <p className="mt-1 text-sm text-gray-900">{user?.phone || 'Not provided'}</p>
+                
+                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                  <div className="flex items-center">
+                    <FontAwesomeIcon icon={faMapMarkerAlt} className="h-5 w-5 text-indigo-500" />
+                    <h4 className="ml-2 text-sm font-medium text-gray-700">Address</h4>
                   </div>
-                </div>
-
-                <div className="flex items-center">
-                  <FontAwesomeIcon icon={faMapMarkerAlt} className="h-5 w-5 text-gray-400 mr-3" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Address</p>
-                    <p className="mt-1 text-sm text-gray-900">{user?.address || 'Not provided'}</p>
-                  </div>
+                  <p className="mt-2 text-gray-900">{user?.address || 'Not provided'}</p>
                 </div>
 
                 {user?.bio && (
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Bio</p>
-                    <p className="mt-1 text-sm text-gray-900">{user.bio}</p>
+                  <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Bio</h4>
+                    <p className="text-gray-900 whitespace-pre-line">{user.bio}</p>
                   </div>
                 )}
               </div>
