@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCalendarAlt, faClock, faUser, faMapMarkerAlt, faCheck, faTimes, faChevronDown, faChevronUp, faBook, faGraduationCap, faBriefcase } from '@fortawesome/free-solid-svg-icons';
+import { faCalendarAlt, faClock, faUser, faMapMarkerAlt, faCheck, faTimes, faChevronDown, faChevronUp, faBook, faGraduationCap, faBriefcase, faStar } from '@fortawesome/free-solid-svg-icons';
 import ProfilePreview from '../../components/user/ProfilePreview';
+import ReviewModal from '../../components/review/ReviewModal';
 
 interface BookingItem {
   id: string;
@@ -25,6 +26,7 @@ interface UserInfo {
 interface EnhancedBooking extends BookingItem {
   studentInfo?: UserInfo;
   tutorInfo?: UserInfo;
+  hasReview?: boolean;
 }
 
 interface PostGroup {
@@ -43,6 +45,7 @@ export default function BookingManagementPage() {
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedBookingForReview, setSelectedBookingForReview] = useState<EnhancedBooking | null>(null);
 
   useEffect(() => {
     fetchBookings();
@@ -87,6 +90,7 @@ export default function BookingManagementPage() {
       const enhancedBookings = await Promise.all(response.data.map(async (booking) => {
         let studentInfo: UserInfo | undefined;
         let tutorInfo: UserInfo | undefined;
+        let hasReview = false;
         
         try {
           // Fetch student info
@@ -121,11 +125,23 @@ export default function BookingManagementPage() {
             fullname: `Tutor ${booking.tutorId.substring(0, 5)}`
           };
         }
+
+        // Check if booking has review (only for completed bookings)
+        if (booking.status === 'COMPLETED') {
+          try {
+            const reviewResponse = await api.get(`/api/reviews/booking/${booking.id}`);
+            hasReview = !!reviewResponse.data;
+          } catch (error) {
+            console.log(`No review found for booking ${booking.id}`);
+            hasReview = false;
+          }
+        }
         
         return {
           ...booking,
           studentInfo,
-          tutorInfo
+          tutorInfo,
+          hasReview
         };
       }));
       
@@ -211,6 +227,19 @@ export default function BookingManagementPage() {
       default:
         return 'bg-yellow-100 text-yellow-800';
     }
+  };
+
+  const handleReviewClick = (booking: EnhancedBooking) => {
+    setSelectedBookingForReview(booking);
+  };
+
+  const handleReviewSuccess = () => {
+    // Update the local state to show that this booking has been reviewed
+    setBookings(bookings.map(booking => 
+      booking.id === selectedBookingForReview?.id 
+        ? { ...booking, hasReview: true } 
+        : booking
+    ));
   };
 
   if (loading) {
@@ -319,6 +348,27 @@ export default function BookingManagementPage() {
                           </div>
                         </div>
                       </div>
+
+                      {booking.status === 'COMPLETED' && (
+                        <div className="mt-4 border-t border-gray-200 pt-4">
+                          <div className="flex justify-end">
+                            {booking.hasReview ? (
+                              <div className="flex items-center text-green-600">
+                                <FontAwesomeIcon icon={faStar} className="mr-1" />
+                                <span className="text-sm">Review submitted</span>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => handleReviewClick(booking)}
+                                className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                              >
+                                <FontAwesomeIcon icon={faStar} className="mr-1" />
+                                Leave Review
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -329,6 +379,16 @@ export default function BookingManagementPage() {
         
         {selectedUserId && (
           <ProfilePreview userId={selectedUserId} onClose={closeProfilePreview} />
+        )}
+
+        {selectedBookingForReview && (
+          <ReviewModal
+            bookingId={selectedBookingForReview.id}
+            tutorName={selectedBookingForReview.tutorInfo?.fullname || selectedBookingForReview.tutorInfo?.username || 'Tutor'}
+            subject={selectedBookingForReview.subject}
+            onClose={() => setSelectedBookingForReview(null)}
+            onSuccess={handleReviewSuccess}
+          />
         )}
       </div>
     );

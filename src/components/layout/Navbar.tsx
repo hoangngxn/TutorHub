@@ -67,6 +67,7 @@ export default function Navbar() {
                 <button
                   onClick={logout}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-red-600 bg-white hover:bg-gray-50"
+                  style={{ backgroundColor: '#e5e7eb' }}
                 >
                   <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" />
                   Logout

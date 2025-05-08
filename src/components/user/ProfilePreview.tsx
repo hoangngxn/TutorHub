@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faEnvelope, faPhone, faMapMarkerAlt, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faUser, faEnvelope, faPhone, faMapMarkerAlt, faTimes, faStar, faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
+import { faStar as farStar } from '@fortawesome/free-regular-svg-icons';
+import './ProfilePreview.css';
 
 interface User {
   id: string;
@@ -15,6 +17,22 @@ interface User {
   bio?: string;
 }
 
+interface ReviewStudent {
+  id: string;
+  username: string;
+  avatar?: string;
+}
+
+interface Review {
+  id: string;
+  bookingId: string;
+  studentId: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  student?: ReviewStudent;
+}
+
 interface ProfilePreviewProps {
   userId: string;
   onClose: () => void;
@@ -22,8 +40,13 @@ interface ProfilePreviewProps {
 
 const ProfilePreview: React.FC<ProfilePreviewProps> = ({ userId, onClose }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [averageRating, setAverageRating] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showReviews, setShowReviews] = useState(false);
+  const [studentInfoMap, setStudentInfoMap] = useState<Record<string, User>>({});
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -32,6 +55,11 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({ userId, onClose }) => {
         const response = await api.get(`/api/auth/users/${userId}`);
         setUser(response.data);
         setError('');
+        
+        // If the user is a tutor, fetch their reviews
+        if (response.data.role === 'TUTOR') {
+          fetchTutorReviews(userId);
+        }
       } catch (err: any) {
         setError(err.response?.status === 404 
           ? 'User not found.' 
@@ -47,15 +75,116 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({ userId, onClose }) => {
     }
   }, [userId]);
 
+  const fetchTutorReviews = async (tutorId: string) => {
+    try {
+      setReviewsLoading(true);
+      const response = await api.get(`/api/reviews/tutor/${tutorId}`);
+      const fetchedReviews = response.data;
+      
+      // Calculate average rating
+      if (fetchedReviews.length > 0) {
+        const sum = fetchedReviews.reduce((acc: number, review: Review) => acc + review.rating, 0);
+        setAverageRating(parseFloat((sum / fetchedReviews.length).toFixed(1)));
+      }
+
+      // Fetch student information for each review
+      const studentIds = fetchedReviews.map((review: Review) => review.studentId).filter(Boolean);
+      const uniqueStudentIds = [...new Set(studentIds)] as string[];
+      
+      const studentInfoPromises = uniqueStudentIds.map(async (studentId: string) => {
+        try {
+          const studentResponse = await api.get(`/api/auth/users/${studentId}`);
+          return { id: studentId, data: studentResponse.data };
+        } catch (error) {
+          console.error(`Error fetching student info for ID ${studentId}:`, error);
+          return { 
+            id: studentId, 
+            data: { 
+              id: studentId, 
+              username: `student_${studentId.substring(0, 5)}`,
+              avatar: undefined
+            } 
+          };
+        }
+      });
+      
+      const studentInfoResults = await Promise.all(studentInfoPromises);
+      const studentMap: Record<string, User> = {};
+      
+      studentInfoResults.forEach(result => {
+        studentMap[result.id] = result.data;
+      });
+      
+      setStudentInfoMap(studentMap);
+      setReviews(fetchedReviews);
+    } catch (err) {
+      console.error('Error fetching tutor reviews:', err);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  const toggleReviews = () => {
+    setShowReviews(!showReviews);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString(undefined, { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
+  const renderStars = (rating: number) => {
+    return (
+      <div className="flex">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <FontAwesomeIcon
+            key={star}
+            icon={star <= rating ? faStar : farStar}
+            className={star <= rating ? "text-yellow-400" : "text-gray-300"}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  const getStudentInfo = (review: Review) => {
+    // First try to use the student object from the review
+    if (review.student && review.student.username) {
+      return review.student;
+    }
+    
+    // Fall back to our locally fetched student info
+    const studentId = review.studentId;
+    if (studentId && studentInfoMap[studentId]) {
+      const student = studentInfoMap[studentId];
+      return {
+        id: student.id,
+        username: student.username || `Student ${student.id.substring(0, 5)}`,
+        avatar: student.avatar
+      };
+    }
+    
+    // Last resort default
+    return {
+      id: review.studentId || 'unknown',
+      username: 'Anonymous Student',
+      avatar: undefined
+    };
+  };
+
   return (
     <div className="fixed inset-0 bg-gray-200 bg-opacity-60 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4 relative max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4 relative max-h-[90vh] overflow-y-auto custom-scrollbar">
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+          className="absolute top-3 right-3 bg-gray-200 hover:bg-gray-300 text-gray-700 hover:text-gray-900 rounded-full p-2 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          style={{ backgroundColor: '#e5e7eb' }}
           aria-label="Close"
         >
-          <FontAwesomeIcon icon={faTimes} className="h-5 w-5" />
+          <FontAwesomeIcon icon={faTimes} className="h-4 w-4" />
         </button>
         
         <h2 className="text-xl font-bold mb-6 text-center text-gray-900 mt-2">User Profile</h2>
@@ -87,6 +216,22 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({ userId, onClose }) => {
             <div className="text-center mb-4">
               <h3 className="text-lg font-medium text-gray-900">{user.fullname || user.username}</h3>
               <p className="text-sm text-indigo-600">{user.role}</p>
+              
+              {user.role === 'TUTOR' && !reviewsLoading && (
+                <div className="mt-2 flex items-center justify-center">
+                  {reviews.length > 0 ? (
+                    <>
+                      <div className="flex items-center">
+                        <span className="text-yellow-500 font-bold mr-1">{averageRating}</span>
+                        <FontAwesomeIcon icon={faStar} className="text-yellow-400 mr-1" />
+                        <span className="text-sm text-gray-500">({reviews.length} reviews)</span>
+                      </div>
+                    </>
+                  ) : (
+                    <span className="text-sm text-gray-500">No reviews yet</span>
+                  )}
+                </div>
+              )}
             </div>
             
             <div className="space-y-3">
@@ -131,6 +276,68 @@ const ProfilePreview: React.FC<ProfilePreviewProps> = ({ userId, onClose }) => {
               <div className="mt-4 pt-4 border-t border-gray-200">
                 <p className="text-sm font-medium text-gray-500 mb-1">Bio</p>
                 <p className="text-sm text-gray-900">{user.bio}</p>
+              </div>
+            )}
+            
+            {user.role === 'TUTOR' && reviews.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <button 
+                  onClick={toggleReviews}
+                  className="flex items-center justify-between w-full py-2 text-left text-sm font-medium text-indigo-600 hover:text-indigo-800 focus:outline-none"
+                  style={{ backgroundColor: '#e5e7eb' }}
+                >
+                  <span>Student Reviews ({reviews.length})</span>
+                  <FontAwesomeIcon 
+                    icon={showReviews ? faChevronUp : faChevronDown} 
+                    className="h-4 w-4"
+                  />
+                </button>
+                
+                {showReviews && (
+                  <div className="mt-2 space-y-4">
+                    {reviewsLoading ? (
+                      <div className="flex justify-center py-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+                      </div>
+                    ) : (
+                      reviews.map(review => {
+                        const studentInfo = getStudentInfo(review);
+                        return (
+                          <div key={review.id} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                            <div className="flex justify-between items-start">
+                              <div className="flex items-center">
+                                {studentInfo.avatar ? (
+                                  <img 
+                                    src={studentInfo.avatar} 
+                                    alt={`${studentInfo.username}'s avatar`}
+                                    className="h-8 w-8 rounded-full mr-2"
+                                  />
+                                ) : (
+                                  <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold mr-2">
+                                    {studentInfo.username.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                                <span className="text-sm font-medium text-gray-900">{studentInfo.username}</span>
+                              </div>
+                              <span className="text-xs text-gray-500">{formatDate(review.createdAt)}</span>
+                            </div>
+                            
+                            <div className="mt-2">
+                              <div className="flex items-center">
+                                {renderStars(review.rating)}
+                                <span className="ml-2 text-sm text-gray-700">{review.rating}/5</span>
+                              </div>
+                              
+                              {review.comment && (
+                                <p className="mt-2 text-sm text-gray-700">{review.comment}</p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
