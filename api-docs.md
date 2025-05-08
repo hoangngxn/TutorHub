@@ -87,6 +87,27 @@
 ```
 - **Response (200 OK)**: Updated user object
 
+### Get User by ID
+- **Route**: `GET /api/auth/users/{userId}`
+- **Access**: Public
+- **Description**: Get a user's profile by their ID
+- **Response (200 OK)**:
+```json
+{
+    "id": "string",
+    "username": "string",
+    "email": "string",
+    "role": "string",
+    "fullname": "string",
+    "phone": "string",
+    "address": "string",
+    "avatar": "string",
+    "bio": "string"
+}
+```
+- **Error Responses**:
+  - `404 Not Found`: If user with the specified ID doesn't exist
+
 ## Posts Endpoints
 
 ### Create Post
@@ -140,6 +161,30 @@
 - **Access**: Public
 - **Description**: Get all posts by a specific tutor
 - **Response (200 OK)**: Array of post objects
+
+### Update Post
+- **Route**: `PUT /api/posts/{postId}`
+- **Access**: Authenticated tutors (post owner only)
+- **Description**: Update an existing tutoring post
+- **Headers**: 
+  - `Authorization: Bearer <jwt_token>`
+- **Request Body**:
+```json
+{
+    "title": "string",         // optional, 5-100 characters
+    "description": "string",   // optional, max 1000 characters
+    "subject": "string",       // optional
+    "location": "string",      // optional
+    "schedule": "string",      // optional
+    "visibility": "boolean",   // optional, true for public, false for private
+    "maxStudent": "number"     // optional, minimum 1
+}
+```
+- **Response (200 OK)**: Updated post object
+- **Error Responses**:
+  - `403 Forbidden`: If user is not the owner of the post
+  - `404 Not Found`: If post doesn't exist
+  - `400 Bad Request`: If maxStudent is less than 1
 
 ## Bookings Endpoints
 

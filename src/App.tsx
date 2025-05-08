@@ -13,6 +13,7 @@ import Dashboard from './pages/Dashboard';
 import ProfilePage from './pages/ProfilePage';
 import CreatePostPage from './pages/posts/CreatePostPage';
 import ManagePostsPage from './pages/posts/ManagePostsPage';
+import EditPostPage from './pages/posts/EditPostPage';
 import BookingManagementPage from './pages/bookings/BookingManagementPage';
 import ReviewsPage from './pages/reviews/ReviewsPage';
 
@@ -50,6 +51,14 @@ function App() {
                 element={
                   <PrivateRoute>
                     <ManagePostsPage />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/posts/edit/:postId"
+                element={
+                  <PrivateRoute>
+                    <EditPostPage />
                   </PrivateRoute>
                 }
               />

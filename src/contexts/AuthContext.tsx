@@ -82,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     setUser(null);
     localStorage.removeItem('token');
+    window.location.href = '/';
   };
 
   const updateProfile = async (data: Partial<User>) => {

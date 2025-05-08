@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEdit, faTrash, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faPlus } from '@fortawesome/free-solid-svg-icons';
 
 interface Post {
   id: string;
@@ -23,7 +23,6 @@ export default function ManagePostsPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchPosts();
@@ -39,18 +38,6 @@ export default function ManagePostsPage() {
       setError('Failed to fetch posts. Please try again later.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleDelete = async (postId: string) => {
-    setDeleting(true);
-    try {
-      await api.delete(`/api/posts/${postId}`);
-      setPosts(posts.filter(post => post.id !== postId));
-    } catch (err) {
-      setError('Failed to delete post. Please try again.');
-    } finally {
-      setDeleting(false);
     }
   };
 
@@ -132,13 +119,7 @@ export default function ManagePostsPage() {
                             </div>
                           </div>
                         </div>
-                        <div className="ml-4 flex-shrink-0 flex space-x-4">
-                          <button
-                            onClick={() => handleDelete(post.id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            <FontAwesomeIcon icon={faTrash} />
-                          </button>
+                        <div className="ml-4 flex-shrink-0">
                           <Link
                             to={`/posts/edit/${post.id}`}
                             className="text-indigo-600 hover:text-indigo-900"
