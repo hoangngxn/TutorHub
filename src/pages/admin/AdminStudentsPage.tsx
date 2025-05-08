@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUsers, faSearch, faTrash, faEnvelope, faPhone, faMapMarkerAlt, faCalendarAlt } from '@fortawesome/free-solid-svg-icons';
+import { faUsers, faSearch, faTrash, faEnvelope, faPhone, faMapMarkerAlt, faCalendarAlt, faBookmark, faComment } from '@fortawesome/free-solid-svg-icons';
 
 interface Student {
   id: string;
@@ -18,6 +18,17 @@ interface Student {
   createdAt: string;
   bookingCount?: number;
   reviewCount?: number;
+}
+
+interface Booking {
+  id: string;
+  studentId: string;
+  tutorId: string;
+  postId: string;
+  subject: string;
+  schedule: string;
+  status: string;
+  createdAt: string;
 }
 
 export default function AdminStudentsPage() {
@@ -48,20 +59,32 @@ export default function AdminStudentsPage() {
       // Enhance students with additional information
       const enhancedStudents = await Promise.all(response.data.map(async (student: Student) => {
         try {
-          // Fetch student's bookings count
-          const bookingsResponse = await api.get('/api/bookings', {
-            params: { studentId: student.id }
+          // Fetch student's bookings using the admin endpoint
+          const bookingsResponse = await api.get('/api/admin/bookings', {
+            params: { userId: student.id }
           });
           
-          // Fetch student's reviews count
-          const reviewsResponse = await api.get('/api/reviews', {
-            params: { studentId: student.id }
-          });
+          // For reviews, we'll check if we have a dedicated endpoint or use the bookings to count completed ones with reviews
+          let reviewCount = 0;
+          try {
+            // First try to get reviews directly if such an endpoint exists
+            const reviewsResponse = await api.get('/api/reviews', {
+              params: { studentId: student.id }
+            });
+            reviewCount = reviewsResponse.data.length;
+          } catch (reviewError) {
+            // If that fails, we'll count COMPLETED bookings as a fallback
+            // This is an approximation and might not be accurate if not all completed bookings have reviews
+            reviewCount = bookingsResponse.data.filter(
+              (booking: Booking) => booking.status === 'COMPLETED'
+            ).length;
+            console.log(`Using completed bookings as proxy for review count for student ${student.id}`);
+          }
           
           return {
             ...student,
             bookingCount: bookingsResponse.data.length,
-            reviewCount: reviewsResponse.data.length
+            reviewCount
           };
         } catch (error) {
           console.error(`Error fetching additional info for student ${student.id}:`, error);
@@ -253,11 +276,15 @@ export default function AdminStudentsPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        <span className="font-medium text-blue-600">{student.bookingCount || 0}</span> bookings
+                      <div className="text-sm text-gray-900 flex items-center">
+                        <FontAwesomeIcon icon={faBookmark} className="h-4 w-4 text-blue-500 mr-2" />
+                        <span className="font-medium text-blue-600">{student.bookingCount || 0}</span>
+                        <span className="ml-1">bookings</span>
                       </div>
-                      <div className="text-sm text-gray-500">
-                        <span className="font-medium text-green-600">{student.reviewCount || 0}</span> reviews
+                      <div className="text-sm text-gray-500 flex items-center mt-1">
+                        <FontAwesomeIcon icon={faComment} className="h-4 w-4 text-green-500 mr-2" />
+                        <span className="font-medium text-green-600">{student.reviewCount || 0}</span>
+                        <span className="ml-1">reviews</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
