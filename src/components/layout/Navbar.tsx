@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faSignOutAlt, faPlus, faList, faCalendarAlt, faUsers, faChalkboardTeacher, faUserGraduate, faUserShield } from '@fortawesome/free-solid-svg-icons';
+import { faUser, faSignOutAlt, faList, faCalendarAlt, faUsers, faChalkboardTeacher, faUserGraduate} from '@fortawesome/free-solid-svg-icons';
 
 export default function Navbar() {
   const { user, logout, isAuthenticated } = useAuth();
@@ -32,7 +32,7 @@ export default function Navbar() {
                   to="/dashboard"
                   className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
                 >
-                  Find Tutors
+                  Dashboard
                 </Link>
               )}
               {user?.role === 'ADMIN' && (
@@ -99,7 +99,7 @@ export default function Navbar() {
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-600 bg-white hover:bg-gray-50"
                 >
                   <FontAwesomeIcon icon={faUser} className="mr-2" />
-                  Profile
+                  {user?.fullname || user?.username}
                 </Link>
                 <button
                   onClick={logout}

@@ -16,6 +16,30 @@ export default function ProfilePage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Validation functions
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const isValidPhone = (phone: string): boolean => {
+    // Remove any non-digit characters before checking length
+    const digits = phone.replace(/\D/g, '');
+    return digits.length >= 10 && digits.length <= 15;
+  };
+
+  const validateForm = (): string | null => {
+    if (formData.email && !isValidEmail(formData.email)) {
+      return 'Please enter a valid email address';
+    }
+
+    if (formData.phone && !isValidPhone(formData.phone)) {
+      return 'Phone number must be between 10 and 15 digits';
+    }
+
+    return null;
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -27,13 +51,25 @@ export default function ProfilePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validate form before submission
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       await updateProfile(formData);
       setIsEditing(false);
-    } catch (err) {
-      setError('Failed to update profile. Please try again.');
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Failed to update profile. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
