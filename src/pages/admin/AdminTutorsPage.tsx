@@ -7,7 +7,6 @@ import {
   faUserGraduate, 
   faSearch, 
   faTrash, 
-  faCheck, 
   faTimes, 
   faEnvelope, 
   faPhone, 
@@ -67,6 +66,7 @@ interface Review {
   comment: string;
   createdAt: string;
   student?: ReviewStudent;
+  postTitle?: string;
 }
 
 export default function AdminTutorsPage() {
@@ -115,7 +115,7 @@ export default function AdminTutorsPage() {
           // Calculate average rating
           let averageRating = 0;
           if (reviewsResponse.data.length > 0) {
-            const sum = reviewsResponse.data.reduce((acc: number, review: any) => acc + review.rating, 0);
+            const sum = reviewsResponse.data.reduce((acc: number, review: Review) => acc + review.rating, 0);
             averageRating = parseFloat((sum / reviewsResponse.data.length).toFixed(1));
           }
           
@@ -138,8 +138,9 @@ export default function AdminTutorsPage() {
       
       setTutors(enhancedTutors);
       setError('');
-    } catch (err) {
+    } catch (error: unknown) {
       setError('Failed to fetch tutors. Please try again later.');
+      console.error('Error fetching tutors:', error);
     } finally {
       setLoading(false);
     }
@@ -158,8 +159,9 @@ export default function AdminTutorsPage() {
     try {
       await api.delete(`/api/admin/users/${tutorId}`);
       setTutors(tutors.filter(tutor => tutor.id !== tutorId));
-    } catch (err) {
+    } catch (error: unknown) {
       setError('Failed to delete tutor. Please try again.');
+      console.error('Error deleting tutor:', error);
     } finally {
       setProcessing(prev => {
         const newState = { ...prev };
@@ -194,6 +196,21 @@ export default function AdminTutorsPage() {
       const studentIds = fetchedReviews.map((review: Review) => review.studentId).filter(Boolean);
       const uniqueStudentIds = [...new Set(studentIds)] as string[];
       
+      // Fetch post information for each review
+      const reviewsWithPosts = await Promise.all(fetchedReviews.map(async (review: Review) => {
+        try {
+          const bookingResponse = await api.get(`/api/bookings/${review.bookingId}`);
+          const postResponse = await api.get(`/api/posts/${bookingResponse.data.postId}`);
+          return {
+            ...review,
+            postTitle: postResponse.data.title
+          };
+        } catch (error) {
+          console.error(`Error fetching post info for review ${review.id}:`, error);
+          return review;
+        }
+      }));
+      
       const studentInfoPromises = uniqueStudentIds.map(async (studentId: string) => {
         try {
           const studentResponse = await api.get(`/api/auth/users/${studentId}`);
@@ -219,7 +236,7 @@ export default function AdminTutorsPage() {
       });
       
       setStudentInfoMap(studentMap);
-      setTutorReviews(fetchedReviews);
+      setTutorReviews(reviewsWithPosts);
       setReviewsModalOpen(true);
     } catch (err) {
       console.error('Failed to fetch tutor reviews:', err);
@@ -598,6 +615,12 @@ export default function AdminTutorsPage() {
                         </div>
                         <span className="text-xs text-gray-500">{formatDate(review.createdAt)}</span>
                       </div>
+                      
+                      {review.postTitle && (
+                        <div className="mt-2">
+                          <p className="text-xs font-medium text-indigo-600">{review.postTitle}</p>
+                        </div>
+                      )}
                       
                       {review.comment && (
                         <div className="mt-3 pl-13 ml-13">
