@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCalendarAlt, faClock, faUser, faMapMarkerAlt, faCheck, faTimes, faChevronDown, faChevronUp, faBook, faGraduationCap, faBriefcase, faStar } from '@fortawesome/free-solid-svg-icons';
+import { faCalendarAlt, faClock, faUser, faMapMarkerAlt, faCheck, faTimes, faChevronDown, faChevronUp, faBook, faGraduationCap, faBriefcase, faStar, faSearch, faSort, faFilter } from '@fortawesome/free-solid-svg-icons';
 import ProfilePreview from '../../components/user/ProfilePreview';
 import ReviewModal from '../../components/review/ReviewModal';
 
@@ -38,20 +38,60 @@ interface PostGroup {
   bookings: EnhancedBooking[];
 }
 
+interface FilterState {
+  search: string;
+  subject: string;
+  status: string;
+  tutorId?: string;
+  sortBy: string;
+}
+
 export default function BookingManagementPage() {
   const { token, user } = useAuth();
   const [bookings, setBookings] = useState<EnhancedBooking[]>([]);
+  const [filteredBookings, setFilteredBookings] = useState<EnhancedBooking[]>([]);
   const [groupedBookings, setGroupedBookings] = useState<PostGroup[]>([]);
+  const [filteredGroupedBookings, setFilteredGroupedBookings] = useState<PostGroup[]>([]);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedBookingForReview, setSelectedBookingForReview] = useState<EnhancedBooking | null>(null);
+  const [filters, setFilters] = useState<FilterState>({
+    search: '',
+    subject: '',
+    status: '',
+    sortBy: 'newest',
+    ...(user?.role === 'STUDENT' ? { tutorId: '' } : {})
+  });
+
+  // Get unique values for filter dropdowns
+  const getUniqueValues = (field: keyof EnhancedBooking | 'tutorName' | 'tutorId') => {
+    return Array.from(new Set(bookings.map(booking => {
+      if (field === 'tutorName') {
+        return booking.tutorInfo?.fullname || booking.tutorInfo?.username;
+      }
+      if (field === 'tutorId') {
+        return booking.tutorInfo?.id;
+      }
+      return booking[field];
+    }))).filter((value): value is string => 
+      typeof value === 'string' && value.length > 0
+    );
+  };
 
   useEffect(() => {
     fetchBookings();
   }, []);
+
+  useEffect(() => {
+    if (user?.role === 'STUDENT') {
+      applyFiltersStudent();
+    } else {
+      applyFiltersTutor();
+    }
+  }, [bookings, filters]);
 
   useEffect(() => {
     // Group bookings by postId
@@ -256,6 +296,155 @@ export default function BookingManagementPage() {
     ));
   };
 
+  const handleDeleteBooking = async (bookingId: string) => {
+    try {
+      setActionLoading(prev => ({ ...prev, [bookingId]: true }));
+      setError('');
+      
+      await api.delete(`/api/bookings/${bookingId}`);
+      
+      // Remove the deleted booking from local state
+      setBookings(bookings.filter(booking => booking.id !== bookingId));
+      
+    } catch (err: any) {
+      console.error('Error deleting booking:', err);
+      const errorMessage = err.response?.data?.message || 'Failed to delete booking. Please try again.';
+      setError(errorMessage);
+    } finally {
+      setActionLoading(prev => ({ ...prev, [bookingId]: false }));
+    }
+  };
+
+  const applyFiltersStudent = () => {
+    let result = [...bookings];
+
+    // Apply search filter
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      result = result.filter(booking =>
+        booking.subject.toLowerCase().includes(searchLower) ||
+        booking.postTitle?.toLowerCase().includes(searchLower) ||
+        booking.tutorInfo?.fullname?.toLowerCase().includes(searchLower) ||
+        booking.tutorInfo?.username.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Apply subject filter
+    if (filters.subject) {
+      result = result.filter(booking => booking.subject === filters.subject);
+    }
+
+    // Apply tutor filter
+    if (filters.tutorId) {
+      result = result.filter(booking => booking.tutorId === filters.tutorId);
+    }
+
+    // Apply status filter
+    if (filters.status) {
+      result = result.filter(booking => booking.status === filters.status);
+    }
+
+    // Apply sorting
+    switch (filters.sortBy) {
+      case 'newest':
+        result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        break;
+      case 'oldest':
+        result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        break;
+      case 'subject':
+        result.sort((a, b) => a.subject.localeCompare(b.subject));
+        break;
+      case 'tutor':
+        result.sort((a, b) => {
+          const tutorA = a.tutorInfo?.fullname || a.tutorInfo?.username || '';
+          const tutorB = b.tutorInfo?.fullname || b.tutorInfo?.username || '';
+          return tutorA.localeCompare(tutorB);
+        });
+        break;
+    }
+
+    setFilteredBookings(result);
+  };
+
+  const applyFiltersTutor = () => {
+    let result = [...bookings];
+
+    // Apply search filter
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      result = result.filter(booking =>
+        booking.subject.toLowerCase().includes(searchLower) ||
+        booking.postTitle?.toLowerCase().includes(searchLower) ||
+        booking.studentInfo?.fullname?.toLowerCase().includes(searchLower) ||
+        booking.studentInfo?.username.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Apply subject filter
+    if (filters.subject) {
+      result = result.filter(booking => booking.subject === filters.subject);
+    }
+
+    // Apply status filter
+    if (filters.status) {
+      result = result.filter(booking => booking.status === filters.status);
+    }
+
+    // Group filtered bookings
+    const groups: Record<string, PostGroup> = {};
+    result.forEach(booking => {
+      if (!groups[booking.postId]) {
+        groups[booking.postId] = {
+          postId: booking.postId,
+          subject: booking.subject,
+          postTitle: booking.postTitle,
+          schedule: booking.schedule,
+          bookings: []
+        };
+      }
+      groups[booking.postId].bookings.push(booking);
+    });
+
+    let groupedResult = Object.values(groups);
+
+    // Apply sorting to groups
+    switch (filters.sortBy) {
+      case 'newest':
+        groupedResult.sort((a, b) => {
+          const dateA = new Date(a.bookings[0].createdAt).getTime();
+          const dateB = new Date(b.bookings[0].createdAt).getTime();
+          return dateB - dateA;
+        });
+        break;
+      case 'oldest':
+        groupedResult.sort((a, b) => {
+          const dateA = new Date(a.bookings[0].createdAt).getTime();
+          const dateB = new Date(b.bookings[0].createdAt).getTime();
+          return dateA - dateB;
+        });
+        break;
+      case 'subject':
+        groupedResult.sort((a, b) => a.subject.localeCompare(b.subject));
+        break;
+      case 'bookings-high':
+        groupedResult.sort((a, b) => b.bookings.length - a.bookings.length);
+        break;
+      case 'bookings-low':
+        groupedResult.sort((a, b) => a.bookings.length - b.bookings.length);
+        break;
+    }
+
+    setFilteredGroupedBookings(groupedResult);
+  };
+
+  const handleFilterChange = (field: keyof FilterState, value: string) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
@@ -290,7 +479,6 @@ export default function BookingManagementPage() {
   }
 
   if (user?.role === 'STUDENT') {
-    // For students, display bookings as a standard list
     return (
       <div className="min-h-screen bg-gray-100 py-6">
         <div className="bg-indigo-600 py-6 px-4 sm:px-6 lg:px-8 mb-6 shadow-md">
@@ -304,18 +492,108 @@ export default function BookingManagementPage() {
           </div>
         </div>
 
+        {/* Filter Bar for Students */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
+          <div className="bg-white rounded-xl shadow-lg p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              {/* Search Input */}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FontAwesomeIcon icon={faSearch} className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search bookings..."
+                  value={filters.search}
+                  onChange={(e) => handleFilterChange('search', e.target.value)}
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
+              </div>
+
+              {/* Subject Filter */}
+              <div>
+                <select
+                  value={filters.subject}
+                  onChange={(e) => handleFilterChange('subject', e.target.value)}
+                  className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                >
+                  <option value="">All Subjects</option>
+                  {getUniqueValues('subject').map(subject => (
+                    <option key={subject} value={subject}>{subject}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Tutor Filter */}
+              <div>
+                <select
+                  value={filters.tutorId}
+                  onChange={(e) => handleFilterChange('tutorId', e.target.value)}
+                  className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                >
+                  <option value="">All Tutors</option>
+                  {getUniqueValues('tutorId').map(tutorId => {
+                    const tutor = bookings.find(b => b.tutorId === tutorId)?.tutorInfo;
+                    return (
+                      <option key={tutorId} value={tutorId}>
+                        {tutor?.fullname || tutor?.username}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              {/* Status Filter */}
+              <div>
+                <select
+                  value={filters.status}
+                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                  className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                >
+                  <option value="">All Status</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="CONFIRMED">Confirmed</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="CANCELED">Canceled</option>
+                </select>
+              </div>
+
+              {/* Sort By */}
+              <div>
+                <select
+                  value={filters.sortBy}
+                  onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+                  className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="subject">Subject A-Z</option>
+                  <option value="tutor">Tutor Name</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Results count */}
+            <div className="mt-4 text-sm text-gray-500">
+              Showing {filteredBookings.length} of {bookings.length} bookings
+            </div>
+          </div>
+        </div>
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mt-4">
-            {bookings.length === 0 ? (
+            {filteredBookings.length === 0 ? (
               <div className="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div className="px-6 py-12 text-center">
                   <FontAwesomeIcon icon={faCalendarAlt} className="h-12 w-12 text-indigo-400 mb-4" />
-                  <p className="text-lg text-gray-500">No bookings found.</p>
+                  <p className="text-lg text-gray-500">
+                    {bookings.length === 0 ? "No bookings found." : "No bookings match your filters."}
+                  </p>
                 </div>
               </div>
             ) : (
               <div className="space-y-4">
-                {bookings.map(booking => (
+                {filteredBookings.map(booking => (
                   <div key={booking.id} className="bg-white rounded-xl shadow-lg overflow-hidden">
                     <div className="px-6 py-5">
                       <div className="flex items-center justify-between">
@@ -366,26 +644,39 @@ export default function BookingManagementPage() {
                         </div>
                       </div>
 
-                      {booking.status === 'COMPLETED' && (
-                        <div className="mt-4 border-t border-gray-200 pt-4">
-                          <div className="flex justify-end">
-                            {booking.hasReview ? (
-                              <div className="flex items-center text-green-600">
-                                <FontAwesomeIcon icon={faStar} className="mr-1" />
-                                <span className="text-sm">Review submitted</span>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => handleReviewClick(booking)}
-                                className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                              >
-                                <FontAwesomeIcon icon={faStar} className="mr-1" />
-                                Leave Review
-                              </button>
-                            )}
-                          </div>
+                      <div className="mt-4 border-t border-gray-200 pt-4">
+                        <div className="flex justify-end space-x-4">
+                          {booking.status === 'PENDING' && (
+                            <button
+                              onClick={() => handleDeleteBooking(booking.id)}
+                              disabled={actionLoading[booking.id]}
+                              className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {actionLoading[booking.id] ? (
+                                <span className="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-1"></span>
+                              ) : (
+                                <FontAwesomeIcon icon={faTimes} className="mr-1" />
+                              )}
+                              Cancel Booking
+                            </button>
+                          )}
+                          {booking.status === 'COMPLETED' && !booking.hasReview && (
+                            <button
+                              onClick={() => handleReviewClick(booking)}
+                              className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            >
+                              <FontAwesomeIcon icon={faStar} className="mr-1" />
+                              Leave Review
+                            </button>
+                          )}
+                          {booking.status === 'COMPLETED' && booking.hasReview && (
+                            <div className="flex items-center text-green-600">
+                              <FontAwesomeIcon icon={faStar} className="mr-1" />
+                              <span className="text-sm">Review submitted</span>
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -425,18 +716,90 @@ export default function BookingManagementPage() {
         </div>
       </div>
 
+      {/* Filter Bar for Tutors */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
+        <div className="bg-white rounded-xl shadow-lg p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Search Input */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FontAwesomeIcon icon={faSearch} className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search bookings..."
+                value={filters.search}
+                onChange={(e) => handleFilterChange('search', e.target.value)}
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              />
+            </div>
+
+            {/* Subject Filter */}
+            <div>
+              <select
+                value={filters.subject}
+                onChange={(e) => handleFilterChange('subject', e.target.value)}
+                className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+              >
+                <option value="">All Subjects</option>
+                {getUniqueValues('subject').map(subject => (
+                  <option key={subject} value={subject}>{subject}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Status Filter */}
+            <div>
+              <select
+                value={filters.status}
+                onChange={(e) => handleFilterChange('status', e.target.value)}
+                className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+              >
+                <option value="">All Status</option>
+                <option value="PENDING">Pending</option>
+                <option value="CONFIRMED">Confirmed</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="CANCELED">Canceled</option>
+              </select>
+            </div>
+
+            {/* Sort By */}
+            <div>
+              <select
+                value={filters.sortBy}
+                onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+                className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+              >
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="subject">Subject A-Z</option>
+                <option value="bookings-high">Most Bookings</option>
+                <option value="bookings-low">Least Bookings</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Results count */}
+          <div className="mt-4 text-sm text-gray-500">
+            Showing {filteredGroupedBookings.reduce((acc, group) => acc + group.bookings.length, 0)} of {bookings.length} bookings
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mt-4">
-          {groupedBookings.length === 0 ? (
+          {filteredGroupedBookings.length === 0 ? (
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
               <div className="px-6 py-12 text-center">
                 <FontAwesomeIcon icon={faBook} className="h-12 w-12 text-indigo-400 mb-4" />
-                <p className="text-lg text-gray-500">No bookings found.</p>
+                <p className="text-lg text-gray-500">
+                  {bookings.length === 0 ? "No bookings found." : "No bookings match your filters."}
+                </p>
               </div>
             </div>
           ) : (
             <div className="space-y-6">
-              {groupedBookings.map(group => {
+              {filteredGroupedBookings.map(group => {
                 const statusCounts = getStatusCount(group);
                 const isExpanded = expandedGroups[group.postId] || false;
                 

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEdit, faPlus, faChalkboardTeacher, faUserGraduate, faClock, faMapMarkerAlt, faEye, faEyeSlash, faGraduationCap } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faPlus, faChalkboardTeacher, faUserGraduate, faClock, faMapMarkerAlt, faEye, faEyeSlash, faGraduationCap, faSearch, faSort, faFilter } from '@fortawesome/free-solid-svg-icons';
 
 interface Post {
   id: string;
@@ -19,27 +19,132 @@ interface Post {
   maxStudent: number;
 }
 
+interface FilterState {
+  search: string;
+  subject: string;
+  grade: string;
+  studentCount: string;
+  sortBy: string;
+  visibility: string;
+}
+
 export default function ManagePostsPage() {
   const { token, user } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
+  const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [filters, setFilters] = useState<FilterState>({
+    search: '',
+    subject: '',
+    grade: '',
+    studentCount: '',
+    sortBy: 'newest',
+    visibility: 'all'
+  });
+
+  // Get unique values for filter dropdowns
+  const getUniqueValues = (field: keyof Post) => {
+    return Array.from(new Set(posts.map(post => post[field])))
+      .filter((value): value is string => 
+        typeof value === 'string' && value.length > 0
+      );
+  };
 
   useEffect(() => {
     fetchPosts();
   }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [posts, filters]);
 
   const fetchPosts = async () => {
     setLoading(true);
     try {
       const response = await api.get(`/api/posts/tutor/${user?.id}`);
       setPosts(response.data);
+      setFilteredPosts(response.data);
       setError('');
     } catch (err) {
       setError('Failed to fetch posts. Please try again later.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const applyFilters = () => {
+    let result = [...posts];
+
+    // Apply search filter
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      result = result.filter(post =>
+        post.title.toLowerCase().includes(searchLower) ||
+        post.description.toLowerCase().includes(searchLower) ||
+        post.subject.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Apply subject filter
+    if (filters.subject) {
+      result = result.filter(post => post.subject === filters.subject);
+    }
+
+    // Apply grade filter
+    if (filters.grade) {
+      result = result.filter(post => post.grade === filters.grade);
+    }
+
+    // Apply student count filter
+    if (filters.studentCount) {
+      switch (filters.studentCount) {
+        case 'empty':
+          result = result.filter(post => post.approvedStudent === 0);
+          break;
+        case 'available':
+          result = result.filter(post => post.approvedStudent < post.maxStudent);
+          break;
+        case 'full':
+          result = result.filter(post => post.approvedStudent >= post.maxStudent);
+          break;
+      }
+    }
+
+    // Apply visibility filter
+    if (filters.visibility !== 'all') {
+      result = result.filter(post => 
+        filters.visibility === 'public' ? post.visibility : !post.visibility
+      );
+    }
+
+    // Apply sorting
+    switch (filters.sortBy) {
+      case 'newest':
+        result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        break;
+      case 'oldest':
+        result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        break;
+      case 'title':
+        result.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+      case 'students-high':
+        result.sort((a, b) => b.approvedStudent - a.approvedStudent);
+        break;
+      case 'students-low':
+        result.sort((a, b) => a.approvedStudent - b.approvedStudent);
+        break;
+    }
+
+    setFilteredPosts(result);
+  };
+
+  const handleFilterChange = (field: keyof FilterState, value: string) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   if (loading) {
@@ -93,25 +198,125 @@ export default function ManagePostsPage() {
         </div>
       </div>
 
+      {/* Filter Bar */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
+        <div className="bg-white rounded-xl shadow-lg p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+            {/* Search Input */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FontAwesomeIcon icon={faSearch} className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search posts..."
+                value={filters.search}
+                onChange={(e) => handleFilterChange('search', e.target.value)}
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              />
+            </div>
+
+            {/* Subject Filter */}
+            <div>
+              <select
+                value={filters.subject}
+                onChange={(e) => handleFilterChange('subject', e.target.value)}
+                className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+              >
+                <option value="">All Subjects</option>
+                {getUniqueValues('subject').map(subject => (
+                  <option key={subject} value={subject}>{subject}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Grade Filter */}
+            <div>
+              <select
+                value={filters.grade}
+                onChange={(e) => handleFilterChange('grade', e.target.value)}
+                className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+              >
+                <option value="">All Grades</option>
+                {getUniqueValues('grade').map(grade => (
+                  <option key={grade} value={grade}>{grade}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Student Count Filter */}
+            <div>
+              <select
+                value={filters.studentCount}
+                onChange={(e) => handleFilterChange('studentCount', e.target.value)}
+                className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+              >
+                <option value="">All Capacities</option>
+                <option value="empty">Empty</option>
+                <option value="available">Available</option>
+                <option value="full">Full</option>
+              </select>
+            </div>
+
+            {/* Visibility Filter */}
+            <div>
+              <select
+                value={filters.visibility}
+                onChange={(e) => handleFilterChange('visibility', e.target.value)}
+                className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+              >
+                <option value="all">All Status</option>
+                <option value="public">Public</option>
+                <option value="private">Private</option>
+              </select>
+            </div>
+
+            {/* Sort By */}
+            <div>
+              <select
+                value={filters.sortBy}
+                onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+                className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+              >
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="title">Title A-Z</option>
+                <option value="students-high">Most Students</option>
+                <option value="students-low">Least Students</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Results count */}
+          <div className="mt-4 text-sm text-gray-500">
+            Showing {filteredPosts.length} of {posts.length} posts
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mt-4">
-          {posts.length === 0 ? (
+          {filteredPosts.length === 0 ? (
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
               <div className="px-6 py-12 text-center">
                 <FontAwesomeIcon icon={faChalkboardTeacher} className="h-12 w-12 text-indigo-400 mb-4" />
-                <p className="text-lg text-gray-500 mb-6">You haven't created any posts yet.</p>
-                <Link
-                  to="/posts/create"
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  <FontAwesomeIcon icon={faPlus} className="mr-2" />
-                  Create Your First Post
-                </Link>
+                <p className="text-lg text-gray-500 mb-6">
+                  {posts.length === 0 ? "You haven't created any posts yet." : "No posts match your filters."}
+                </p>
+                {posts.length === 0 && (
+                  <Link
+                    to="/posts/create"
+                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    <FontAwesomeIcon icon={faPlus} className="mr-2" />
+                    Create Your First Post
+                  </Link>
+                )}
               </div>
             </div>
           ) : (
             <div className="space-y-4">
-              {posts.map(post => (
+              {filteredPosts.map(post => (
                 <div key={post.id} className="bg-white rounded-xl shadow-lg overflow-hidden">
                   <div className="px-6 py-5">
                     <div className="flex items-center justify-between">

@@ -286,6 +286,19 @@
   - `403 Forbidden`: If user is not the tutor of this booking
   - `404 Not Found`: If booking doesn't exist
 
+### Delete Booking
+- **Route**: `DELETE /api/bookings/{bookingId}`
+- **Access**: Authenticated students only
+- **Description**: Delete a pending booking (only available for students to cancel their unconfirmed bookings)
+- **Headers**: 
+  - `Authorization: Bearer <jwt_token>`
+- **Response (200 OK)**: Empty response
+- **Error Responses**:
+  - `403 Forbidden`: If user is not a student
+  - `403 Forbidden`: If user is not the student who created the booking
+  - `400 Bad Request`: If booking is not in PENDING status
+  - `404 Not Found`: If booking doesn't exist
+
 ## Reviews Endpoints
 
 ### Create Review
@@ -336,6 +349,7 @@
         "student": {
             "id": "string",
             "username": "string",
+            "fullname": "string",
             "avatar": "string"
         }
     }
@@ -360,6 +374,7 @@
     "student": {
         "id": "string",
         "username": "string",
+        "fullname": "string",
         "avatar": "string"
     }
 }
