@@ -3,7 +3,7 @@ import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faFilter, faUser, faMapMarkerAlt, faClock, faBook, faUsers, faChalkboardTeacher, faGraduationCap } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faFilter, faUser, faMapMarkerAlt, faClock, faBook, faUsers, faChalkboardTeacher, faGraduationCap, faCalendarAlt } from '@fortawesome/free-solid-svg-icons';
 import ProfilePreview from '../components/user/ProfilePreview';
 
 // Add predefined grades constant
@@ -14,6 +14,12 @@ const GRADES = [
   "Đại học", "Sau đại học"
 ];
 
+interface Schedule {
+  weekday: string;
+  startHour: string;
+  endHour: string;
+}
+
 interface Post {
   id: string;
   userId: string;
@@ -21,12 +27,14 @@ interface Post {
   description: string;
   subject: string;
   location: string;
-  schedule: string;
+  schedules: Schedule[];
   grade: string;
   createdAt: string;
   visibility: boolean;
   approvedStudent: number;
   maxStudent: number;
+  startTime: string;
+  endTime: string;
   tutorInfo?: {
     id: string;
     username: string;
@@ -40,10 +48,37 @@ interface Booking {
   tutorId: string;
   postId: string;
   subject: string;
-  schedule: string;
+  schedule: Schedule;
   status: string;
   createdAt: string;
 }
+
+// Add helper function to check course progress
+const calculateCourseProgress = (startTime: string, endTime: string): number => {
+  const start = new Date(startTime).getTime();
+  const end = new Date(endTime).getTime();
+  const now = new Date().getTime();
+  
+  // If course hasn't started yet, progress is 0
+  if (now < start) return 0;
+  // If course has ended, progress is 100
+  if (now > end) return 100;
+  
+  // Calculate progress percentage
+  const totalDuration = end - start;
+  const elapsed = now - start;
+  return (elapsed / totalDuration) * 100;
+};
+
+// Update the helper function to format schedules
+const formatSchedules = (schedules: Schedule[]): string => {
+  return schedules.map(schedule => {
+    // Remove seconds from time display
+    const startTime = schedule.startHour.split(':').slice(0, 2).join(':');
+    const endTime = schedule.endHour.split(':').slice(0, 2).join(':');
+    return `${schedule.weekday}: ${startTime} - ${endTime}`;
+  }).join(', ');
+};
 
 export default function Dashboard() {
   const { user, isAuthenticated } = useAuth();
@@ -121,6 +156,11 @@ export default function Dashboard() {
     return userBookings.some(booking => booking.postId === postId);
   };
 
+  const isCourseTooProgressed = (post: Post) => {
+    const progress = calculateCourseProgress(post.startTime, post.endTime);
+    return progress >= 50;
+  };
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchTerm(value);
@@ -149,7 +189,7 @@ export default function Dashboard() {
       post.description.toLowerCase().includes(searchTermLower) ||
       post.subject.toLowerCase().includes(searchTermLower) ||
       post.location.toLowerCase().includes(searchTermLower) ||
-      post.schedule.toLowerCase().includes(searchTermLower) ||
+      formatSchedules(post.schedules).toLowerCase().includes(searchTermLower) ||
       (post.grade || '').toLowerCase().includes(searchTermLower) ||
       (post.tutorInfo?.fullname || '').toLowerCase().includes(searchTermLower) ||
       (post.tutorInfo?.username || '').toLowerCase().includes(searchTermLower);
@@ -321,24 +361,28 @@ export default function Dashboard() {
                   
                   <div className="flex items-center text-sm text-gray-600">
                     <FontAwesomeIcon icon={faClock} className="flex-shrink-0 mr-2 h-4 w-4 text-gray-500" />
-                    <span className="font-medium text-gray-700">Schedule:</span>
-                    <span className="ml-2">{post.schedule}</span>
+                    <span className="font-medium text-gray-700">Schedules:</span>
+                    <span className="ml-2">{formatSchedules(post.schedules)}</span>
+                  </div>
+                  
+                  <div className="flex items-center text-sm text-gray-600">
+                    <FontAwesomeIcon icon={faCalendarAlt} className="flex-shrink-0 mr-2 h-4 w-4 text-gray-500" />
+                    <span className="font-medium text-gray-700">Course Period:</span>
+                    <span className="ml-2">
+                      {new Date(post.startTime).toLocaleDateString()} - {new Date(post.endTime).toLocaleDateString()}
+                    </span>
                   </div>
                   
                   <div className="flex items-center text-sm text-gray-600">
                     <FontAwesomeIcon icon={faGraduationCap} className="flex-shrink-0 mr-2 h-4 w-4 text-gray-500" />
-                    <span className="font-medium text-gray-700">Grade:</span>
+                    <span className="font-medium text-gray-700">Grade Level:</span>
                     <span className="ml-2">{post.grade || 'Not specified'}</span>
                   </div>
                   
                   <div className="flex items-center text-sm text-gray-600">
                     <FontAwesomeIcon icon={faUsers} className="flex-shrink-0 mr-2 h-4 w-4 text-gray-500" />
                     <span className="font-medium text-gray-700">Students:</span>
-                    <span className="ml-2">
-                      <span className={post.approvedStudent >= post.maxStudent ? 'text-red-600 font-medium' : ''}>
-                        {post.approvedStudent}
-                      </span>/{post.maxStudent}
-                    </span>
+                    <span className="ml-2">{post.approvedStudent}/{post.maxStudent}</span>
                   </div>
                   
                   <div className="flex items-center text-sm text-gray-600 pt-2 border-t border-gray-100">
@@ -361,39 +405,44 @@ export default function Dashboard() {
                       disabled={
                         bookingStatus[post.id] === 'loading' || 
                         post.approvedStudent >= post.maxStudent || 
-                        hasBookingForPost(post.id)
+                        hasBookingForPost(post.id) ||
+                        isCourseTooProgressed(post)
                       }
                       className={`w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm
                         ${post.approvedStudent >= post.maxStudent 
                           ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
                           : hasBookingForPost(post.id)
                             ? 'bg-green-50 text-green-700 border-green-300'
-                            : bookingStatus[post.id] === 'success'
-                              ? 'bg-green-600 text-white hover:bg-green-700'
-                              : bookingStatus[post.id] === 'error'
-                                ? 'bg-red-600 text-white hover:bg-red-700'
-                                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                            : isCourseTooProgressed(post)
+                              ? 'bg-yellow-100 text-yellow-800 cursor-not-allowed'
+                              : bookingStatus[post.id] === 'success'
+                                ? 'bg-green-600 text-white hover:bg-green-700'
+                                : bookingStatus[post.id] === 'error'
+                                  ? 'bg-red-600 text-white hover:bg-red-700'
+                                  : 'bg-indigo-600 text-white hover:bg-indigo-700'
                         } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors`}
                     >
                       {post.approvedStudent >= post.maxStudent 
                         ? 'Class Full' 
                         : hasBookingForPost(post.id)
                           ? 'Signed Up'
-                          : bookingStatus[post.id] === 'loading'
-                            ? (
-                              <>
-                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Processing...
-                              </>
-                            )
-                            : bookingStatus[post.id] === 'success'
-                              ? 'Booked Successfully!'
-                              : bookingStatus[post.id] === 'error'
-                                ? 'Booking Failed'
-                                : 'Sign Up'}
+                          : isCourseTooProgressed(post)
+                            ? 'Course In Progress (>50%)'
+                            : bookingStatus[post.id] === 'loading'
+                              ? (
+                                <>
+                                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                  Processing...
+                                </>
+                              )
+                              : bookingStatus[post.id] === 'success'
+                                ? 'Booked Successfully!'
+                                : bookingStatus[post.id] === 'error'
+                                  ? 'Booking Failed'
+                                  : 'Sign Up'}
                     </button>
                   </div>
                 )}

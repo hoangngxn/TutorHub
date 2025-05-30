@@ -6,13 +6,19 @@ import { faCalendarAlt, faClock, faUser, faMapMarkerAlt, faCheck, faTimes, faChe
 import ProfilePreview from '../../components/user/ProfilePreview';
 import ReviewModal from '../../components/review/ReviewModal';
 
+interface Schedule {
+  weekday: string;
+  startHour: string;
+  endHour: string;
+}
+
 interface BookingItem {
   id: string;
   studentId: string;
   tutorId: string;
   postId: string;
   subject: string;
-  schedule: string;
+  schedule: Schedule;
   status: 'PENDING' | 'CONFIRMED' | 'CANCELED' | 'COMPLETED';
   createdAt: string;
 }
@@ -34,7 +40,7 @@ interface PostGroup {
   postId: string;
   subject: string;
   postTitle?: string;
-  schedule: string;
+  schedule: Schedule;
   bookings: EnhancedBooking[];
 }
 
@@ -45,6 +51,13 @@ interface FilterState {
   tutorId?: string;
   sortBy: string;
 }
+
+// Update the helper function to format schedule
+const formatSchedule = (schedule: Schedule): string => {
+  const startTime = schedule.startHour.split(':').slice(0, 2).join(':');
+  const endTime = schedule.endHour.split(':').slice(0, 2).join(':');
+  return `${schedule.weekday}: ${startTime} - ${endTime}`;
+};
 
 export default function BookingManagementPage() {
   const { token, user } = useAuth();
@@ -625,7 +638,7 @@ export default function BookingManagementPage() {
                           <div className="flex items-center">
                             <FontAwesomeIcon icon={faClock} className="h-5 w-5 text-indigo-500 mr-2" />
                             <span className="text-sm font-medium text-gray-500">Schedule:</span>
-                            <span className="ml-2 text-sm text-gray-900">{booking.schedule}</span>
+                            <span className="ml-2 text-sm text-gray-900">{formatSchedule(booking.schedule)}</span>
                           </div>
                         </div>
                         
@@ -823,7 +836,7 @@ export default function BookingManagementPage() {
                               <span className="mr-2 text-indigo-500">{group.subject}</span>
                             )}
                             <FontAwesomeIcon icon={faClock} className="h-4 w-4 text-gray-400 mr-2" />
-                            {group.schedule} • {group.bookings.length} bookings
+                            {formatSchedule(group.schedule)} • {group.bookings.length} bookings
                           </p>
                         </div>
                         <div className="flex items-center space-x-2">

@@ -125,16 +125,28 @@
     "description": "string",   // max 1000 characters
     "subject": "string",
     "location": "string",
-    "schedule": "string",
+    "schedules": [            // List of weekly schedules
+        {
+            "weekday": "string",     // "MONDAY" to "SUNDAY"
+            "startHour": "string",   // "HH:mm" format (24-hour)
+            "endHour": "string"      // "HH:mm" format (24-hour)
+        }
+    ],
     "grade": "string",        // education grade level
     "visibility": "boolean",   // true for public, false for private
-    "maxStudent": "number"     // minimum 1
+    "maxStudent": "number",     // minimum 1
+    "startTime": "string",    // ISO-8601 format, must be in the future
+    "endTime": "string"       // ISO-8601 format, must be in the future and after startTime
 }
 ```
 - **Response (200 OK)**: Created post object
 - **Error Responses**:
   - `403 Forbidden`: If user is not a tutor
   - `400 Bad Request`: If maxStudent is less than 1
+  - `400 Bad Request`: If end time is before start time
+  - `400 Bad Request`: If start time or end time is in the past
+  - `400 Bad Request`: If schedule end hour is before start hour
+  - `400 Bad Request`: If schedule overlaps with tutor's existing posts
 
 ### Get All Posts
 - **Route**: `GET /api/posts`
@@ -150,12 +162,20 @@
         "description": "string",
         "subject": "string",
         "location": "string",
-        "schedule": "string",
+        "schedules": [
+            {
+                "weekday": "string",     // "MONDAY" to "SUNDAY"
+                "startHour": "string",   // "HH:mm" format (24-hour)
+                "endHour": "string"      // "HH:mm" format (24-hour)
+            }
+        ],
         "grade": "string",
         "createdAt": "string",
         "visibility": "boolean",
         "approvedStudent": "number",  // count of confirmed bookings
-        "maxStudent": "number"        // maximum number of students allowed
+        "maxStudent": "number",       // maximum number of students allowed
+        "startTime": "string",       // ISO-8601 format
+        "endTime": "string"          // ISO-8601 format
     }
 ]
 ```
@@ -179,7 +199,13 @@
     "description": "string",
     "subject": "string",
     "location": "string",
-    "schedule": "string",
+    "schedules": [
+        {
+            "weekday": "string",     // "MONDAY" to "SUNDAY"
+            "startHour": "string",   // "HH:mm" format (24-hour)
+            "endHour": "string"      // "HH:mm" format (24-hour)
+        }
+    ],
     "grade": "string",
     "createdAt": "string",
     "visibility": "boolean",
@@ -203,10 +229,18 @@
     "description": "string",   // optional, max 1000 characters
     "subject": "string",       // optional
     "location": "string",      // optional
-    "schedule": "string",      // optional
+    "schedules": [             // optional, list of weekly schedules
+        {
+            "weekday": "string",     // "MONDAY" to "SUNDAY"
+            "startHour": "string",   // "HH:mm" format (24-hour)
+            "endHour": "string"      // "HH:mm" format (24-hour)
+        }
+    ],
     "grade": "string",         // optional, education grade level
     "visibility": "boolean",   // optional, true for public, false for private
-    "maxStudent": "number"     // optional, minimum 1
+    "maxStudent": "number",    // optional, minimum 1
+    "startTime": "string",     // optional, ISO-8601 format, must be in the future
+    "endTime": "string"        // optional, ISO-8601 format, must be in the future and after startTime
 }
 ```
 - **Response (200 OK)**: Updated post object
@@ -214,13 +248,17 @@
   - `403 Forbidden`: If user is not the owner of the post
   - `404 Not Found`: If post doesn't exist
   - `400 Bad Request`: If maxStudent is less than 1
+  - `400 Bad Request`: If end time is before start time
+  - `400 Bad Request`: If start time or end time is in the past
+  - `400 Bad Request`: If schedule end hour is before start hour
+  - `400 Bad Request`: If schedule overlaps with tutor's existing posts
 
 ## Bookings Endpoints
 
 ### Create Booking
 - **Route**: `POST /api/bookings`
 - **Access**: Authenticated students only
-- **Description**: Create a new booking for a post
+- **Description**: Create a new booking for a post (automatically assigns the first available schedule)
 - **Headers**: 
   - `Authorization: Bearer <jwt_token>`
 - **Request Body**:
@@ -237,7 +275,11 @@
     "tutorId": "string",
     "postId": "string",
     "subject": "string",
-    "schedule": "string",
+    "schedule": {
+        "weekday": "string",     // "MONDAY" to "SUNDAY"
+        "startHour": "string",   // "HH:mm" format (24-hour)
+        "endHour": "string"      // "HH:mm" format (24-hour)
+    },
     "status": "PENDING",
     "createdAt": "string"
 }
@@ -264,7 +306,11 @@
             "tutorId": "string",
             "postId": "string",
             "subject": "string",
-            "schedule": "string",
+            "schedule": {
+                "weekday": "string",     // "MONDAY" to "SUNDAY"
+                "startHour": "string",   // "HH:mm" format (24-hour)
+                "endHour": "string"      // "HH:mm" format (24-hour)
+            },
             "status": "string", // "PENDING", "CONFIRMED", "CANCELED", or "COMPLETED"
             "createdAt": "string"
         }
@@ -471,7 +517,13 @@
     "description": "string",   // optional, max 1000 characters
     "subject": "string",       // optional
     "location": "string",      // optional
-    "schedule": "string",      // optional
+    "schedules": [             // optional, list of weekly schedules
+        {
+            "weekday": "string",     // "MONDAY" to "SUNDAY"
+            "startHour": "string",   // "HH:mm" format (24-hour)
+            "endHour": "string"      // "HH:mm" format (24-hour)
+        }
+    ],
     "grade": "string",         // optional, education grade level
     "visibility": "boolean",   // optional, true for public, false for private
     "maxStudent": "number"     // optional, minimum 1

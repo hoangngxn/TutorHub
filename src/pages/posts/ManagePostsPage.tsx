@@ -5,18 +5,26 @@ import { useAuth } from '../../contexts/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEdit, faPlus, faChalkboardTeacher, faUserGraduate, faClock, faMapMarkerAlt, faEye, faEyeSlash, faGraduationCap, faSearch, faSort, faFilter } from '@fortawesome/free-solid-svg-icons';
 
+interface Schedule {
+  weekday: string;
+  startHour: string;
+  endHour: string;
+}
+
 interface Post {
   id: string;
   title: string;
   description: string;
   subject: string;
   location: string;
-  schedule: string;
+  schedules: Schedule[];
   grade: string;
   createdAt: string;
   visibility: boolean;
   approvedStudent: number;
   maxStudent: number;
+  startTime: string;
+  endTime: string;
 }
 
 interface FilterState {
@@ -145,6 +153,15 @@ export default function ManagePostsPage() {
       ...prev,
       [field]: value
     }));
+  };
+
+  // Update the helper function to format schedules
+  const formatSchedules = (schedules: Schedule[]): string => {
+    return schedules.map(schedule => {
+      const startTime = schedule.startHour.split(':').slice(0, 2).join(':');
+      const endTime = schedule.endHour.split(':').slice(0, 2).join(':');
+      return `${schedule.weekday}: ${startTime} - ${endTime}`;
+    }).join(', ');
   };
 
   if (loading) {
@@ -366,8 +383,18 @@ export default function ManagePostsPage() {
                       <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
                         <div className="flex items-center">
                           <FontAwesomeIcon icon={faClock} className="h-5 w-5 text-indigo-500 mr-2" />
-                          <span className="text-sm font-medium text-gray-500">Schedule:</span>
-                          <span className="ml-2 text-sm text-gray-900">{post.schedule}</span>
+                          <span className="text-sm font-medium text-gray-500">Schedules:</span>
+                          <span className="ml-2 text-sm text-gray-900">{formatSchedules(post.schedules)}</span>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                        <div className="flex items-center">
+                          <FontAwesomeIcon icon={faClock} className="h-5 w-5 text-indigo-500 mr-2" />
+                          <span className="text-sm font-medium text-gray-500">Course Period:</span>
+                          <span className="ml-2 text-sm text-gray-900">
+                            {new Date(post.startTime).toLocaleDateString()} - {new Date(post.endTime).toLocaleDateString()}
+                          </span>
                         </div>
                       </div>
 
