@@ -93,6 +93,19 @@ export default function Dashboard() {
   const [selectedGrade, setSelectedGrade] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
+  // Add helper function to check for schedule overlaps
+  const hasScheduleOverlap = (post: Post): boolean => {
+    if (!userBookings) return false; // Handle case when userBookings is not loaded yet
+    return userBookings.some((booking: Booking) => 
+      booking.status !== 'CANCELED' && // Only check non-canceled bookings
+      post.schedules.some(schedule => 
+        booking.schedule.weekday === schedule.weekday && // Same weekday
+        parseInt(booking.schedule.startHour) < parseInt(schedule.endHour) && // Booking starts before post ends
+        parseInt(schedule.startHour) < parseInt(booking.schedule.endHour) // Post starts before booking ends
+      )
+    );
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -213,12 +226,15 @@ export default function Dashboard() {
 
     try {
       setBookingStatus(prev => ({ ...prev, [postId]: 'loading' }));
+      setError('');
+      
       await api.post('/api/bookings', { postId });
-      setBookingStatus(prev => ({ ...prev, [postId]: 'success' }));
       
       // Update userBookings after successful booking
       const updatedBookings = await api.get('/api/bookings');
       setUserBookings(updatedBookings.data);
+      
+      setBookingStatus(prev => ({ ...prev, [postId]: 'success' }));
       
       setTimeout(() => {
         setBookingStatus(prev => {
@@ -227,9 +243,11 @@ export default function Dashboard() {
           return newStatus;
         });
       }, 3000);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('Error creating booking:', err);
+      const errorMessage = err.response?.data?.message || 'Failed to book tutoring session. Please try again.';
+      setError(errorMessage);
       setBookingStatus(prev => ({ ...prev, [postId]: 'error' }));
-      setError('Failed to book tutoring session. Please try again later.');
       setTimeout(() => {
         setBookingStatus(prev => {
           const newStatus = { ...prev };
@@ -406,7 +424,8 @@ export default function Dashboard() {
                         bookingStatus[post.id] === 'loading' || 
                         post.approvedStudent >= post.maxStudent || 
                         hasBookingForPost(post.id) ||
-                        isCourseTooProgressed(post)
+                        isCourseTooProgressed(post) ||
+                        hasScheduleOverlap(post)
                       }
                       className={`w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm
                         ${post.approvedStudent >= post.maxStudent 
@@ -415,11 +434,13 @@ export default function Dashboard() {
                             ? 'bg-green-50 text-green-700 border-green-300'
                             : isCourseTooProgressed(post)
                               ? 'bg-yellow-100 text-yellow-800 cursor-not-allowed'
-                              : bookingStatus[post.id] === 'success'
-                                ? 'bg-green-600 text-white hover:bg-green-700'
-                                : bookingStatus[post.id] === 'error'
-                                  ? 'bg-red-600 text-white hover:bg-red-700'
-                                  : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                              : hasScheduleOverlap(post)
+                                ? 'bg-red-100 text-red-800 cursor-not-allowed'
+                                : bookingStatus[post.id] === 'success'
+                                  ? 'bg-green-600 text-white hover:bg-green-700'
+                                  : bookingStatus[post.id] === 'error'
+                                    ? 'bg-red-600 text-white hover:bg-red-700'
+                                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
                         } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors`}
                     >
                       {post.approvedStudent >= post.maxStudent 
@@ -428,21 +449,23 @@ export default function Dashboard() {
                           ? 'Signed Up'
                           : isCourseTooProgressed(post)
                             ? 'Course In Progress (>50%)'
-                            : bookingStatus[post.id] === 'loading'
-                              ? (
-                                <>
-                                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                  </svg>
-                                  Processing...
-                                </>
-                              )
-                              : bookingStatus[post.id] === 'success'
-                                ? 'Booked Successfully!'
-                                : bookingStatus[post.id] === 'error'
-                                  ? 'Booking Failed'
-                                  : 'Sign Up'}
+                            : hasScheduleOverlap(post)
+                              ? 'Schedule Overlaps'
+                              : bookingStatus[post.id] === 'loading'
+                                ? (
+                                  <>
+                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Processing...
+                                  </>
+                                )
+                                : bookingStatus[post.id] === 'success'
+                                  ? 'Booked Successfully!'
+                                  : bookingStatus[post.id] === 'error'
+                                    ? 'Booking Failed'
+                                    : 'Sign Up'}
                     </button>
                   </div>
                 )}

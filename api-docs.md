@@ -255,6 +255,30 @@
 
 ## Bookings Endpoints
 
+### Error Response Format
+All booking-related errors will return a response in the following format:
+```json
+{
+    "timestamp": "string",    // ISO-8601 format
+    "status": "error",
+    "code": "string",        // Error code for programmatic handling
+    "message": "string"      // Human-readable error message
+}
+```
+
+### Error Codes
+The following error codes may be returned by booking endpoints:
+- `NOT_STUDENT`: When a non-student tries to create/delete a booking
+- `POST_NOT_FOUND`: When the requested post doesn't exist
+- `POST_NOT_AVAILABLE`: When the post is no longer visible/available
+- `POST_FULL`: When the post has reached its maximum students
+- `POST_ENDED`: When the post's end date has passed
+- `SCHEDULE_OVERLAP`: When the schedule conflicts with existing bookings
+- `BOOKING_NOT_FOUND`: When the requested booking doesn't exist
+- `NOT_TUTOR`: When a non-tutor tries to update booking status
+- `NOT_BOOKING_OWNER`: When trying to modify someone else's booking
+- `NOT_PENDING_STATUS`: When trying to delete a non-pending booking
+
 ### Create Booking
 - **Route**: `POST /api/bookings`
 - **Access**: Authenticated students only
@@ -285,8 +309,13 @@
 }
 ```
 - **Error Responses**:
-  - `403 Forbidden`: If user is not a student
-  - `404 Not Found`: If post doesn't exist
+  - `400 Bad Request`:
+    - Code: `NOT_STUDENT` - If user is not a student
+    - Code: `POST_NOT_FOUND` - If post doesn't exist
+    - Code: `POST_NOT_AVAILABLE` - If post is no longer available
+    - Code: `POST_FULL` - If post has reached maximum students
+    - Code: `POST_ENDED` - If post has already ended
+    - Code: `SCHEDULE_OVERLAP` - If schedule conflicts with existing bookings
 
 ### Get My Bookings
 - **Route**: `GET /api/bookings`
@@ -329,8 +358,9 @@
   - `status`: One of ["PENDING", "CONFIRMED", "CANCELED", "COMPLETED"]
 - **Response (200 OK)**: Updated booking object
 - **Error Responses**:
-  - `403 Forbidden`: If user is not the tutor of this booking
-  - `404 Not Found`: If booking doesn't exist
+  - `400 Bad Request`:
+    - Code: `NOT_TUTOR` - If user is not the tutor of this booking
+    - Code: `BOOKING_NOT_FOUND` - If booking doesn't exist
 
 ### Delete Booking
 - **Route**: `DELETE /api/bookings/{bookingId}`
@@ -340,10 +370,11 @@
   - `Authorization: Bearer <jwt_token>`
 - **Response (200 OK)**: Empty response
 - **Error Responses**:
-  - `403 Forbidden`: If user is not a student
-  - `403 Forbidden`: If user is not the student who created the booking
-  - `400 Bad Request`: If booking is not in PENDING status
-  - `404 Not Found`: If booking doesn't exist
+  - `400 Bad Request`:
+    - Code: `NOT_STUDENT` - If user is not a student
+    - Code: `NOT_BOOKING_OWNER` - If user is not the student who created the booking
+    - Code: `NOT_PENDING_STATUS` - If booking is not in PENDING status
+    - Code: `BOOKING_NOT_FOUND` - If booking doesn't exist
 
 ## Reviews Endpoints
 
