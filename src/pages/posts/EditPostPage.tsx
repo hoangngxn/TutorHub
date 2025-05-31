@@ -67,6 +67,7 @@ export default function EditPostPage() {
     startTime: '',
     endTime: ''
   });
+  const [originalData, setOriginalData] = useState<PostData | null>(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
@@ -84,7 +85,7 @@ export default function EditPostPage() {
           return;
         }
 
-        setFormData({
+        const formattedData = {
           title: postData.title,
           description: postData.description,
           subject: postData.subject,
@@ -95,7 +96,10 @@ export default function EditPostPage() {
           maxStudent: postData.maxStudent,
           startTime: postData.startTime,
           endTime: postData.endTime
-        });
+        };
+
+        setFormData(formattedData);
+        setOriginalData(formattedData);
       } catch (err) {
         setError('Failed to fetch post details. Please try again.');
       } finally {
@@ -156,19 +160,45 @@ export default function EditPostPage() {
     }));
   };
 
+  const getModifiedFields = () => {
+    if (!originalData) return formData;
+
+    const changes = {} as Record<keyof PostData, any>;
+    
+    (Object.keys(formData) as Array<keyof PostData>).forEach(key => {
+      if (key === 'schedules') {
+        // Deep comparison for schedules array
+        if (JSON.stringify(formData[key]) !== JSON.stringify(originalData[key])) {
+          changes[key] = formData[key];
+        }
+      } else if (formData[key] !== originalData[key]) {
+        changes[key] = formData[key];
+      }
+    });
+
+    // Only return fields that were actually modified
+    return Object.fromEntries(
+      Object.entries(changes).filter(([_, value]) => value !== undefined)
+    ) as Partial<PostData>;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
     try {
-      // Ensure both dates have their times set to 00:00 before submitting
-      const dataToSubmit = {
-        ...formData,
-        startTime: new Date(formData.startTime).toISOString(),
-        endTime: new Date(formData.endTime).toISOString()
-      };
-      await api.put(`/api/posts/${postId}`, dataToSubmit);
+      const modifiedFields = getModifiedFields();
+      
+      // If there are date fields in the modified fields, ensure they're formatted correctly
+      if ('startTime' in modifiedFields) {
+        modifiedFields.startTime = new Date(modifiedFields.startTime as string).toISOString();
+      }
+      if ('endTime' in modifiedFields) {
+        modifiedFields.endTime = new Date(modifiedFields.endTime as string).toISOString();
+      }
+
+      await api.put(`/api/posts/${postId}`, modifiedFields);
       navigate('/posts/manage');
     } catch (err) {
       setError('Failed to update post. Please try again.');
