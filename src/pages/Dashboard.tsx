@@ -3,7 +3,8 @@ import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faFilter, faUser, faMapMarkerAlt, faClock, faBook, faUsers, faChalkboardTeacher, faGraduationCap, faCalendarAlt } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faFilter, faUser, faMapMarkerAlt, faClock, faBook, faUsers, faChalkboardTeacher, faGraduationCap, faCalendarAlt, faBookmark as faBookmarkSolid, faFlag } from '@fortawesome/free-solid-svg-icons';
+import { faBookmark as faBookmarkRegular } from '@fortawesome/free-regular-svg-icons';
 import ProfilePreview from '../components/user/ProfilePreview';
 
 // Add predefined grades constant
@@ -53,6 +54,14 @@ interface Booking {
   createdAt: string;
 }
 
+// Add Bookmark interface
+interface Bookmark {
+  id: string;
+  userId: string;
+  postId: string;
+  createdAt: string;
+}
+
 // Add helper function to check course progress
 const calculateCourseProgress = (startTime: string, endTime: string): number => {
   const start = new Date(startTime).getTime();
@@ -92,6 +101,9 @@ export default function Dashboard() {
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedGrade, setSelectedGrade] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [bookmarkedPosts, setBookmarkedPosts] = useState<Set<string>>(new Set());
+  const [showBookmarkedOnly, setShowBookmarkedOnly] = useState(false);
+  const [bookmarkLoading, setBookmarkLoading] = useState<{[key: string]: boolean}>({});
 
   // Add helper function to check for schedule overlaps
   const hasScheduleOverlap = (post: Post): boolean => {
@@ -104,6 +116,20 @@ export default function Dashboard() {
         parseInt(schedule.startHour) < parseInt(booking.schedule.endHour) // Post starts before booking ends
       )
     );
+  };
+
+  // Update fetchBookmarks with proper typing
+  const fetchBookmarks = async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const response = await api.get('/api/bookmarks');
+      const bookmarks: Bookmark[] = response.data;
+      const bookmarkedPostIds: Set<string> = new Set(bookmarks.map(bookmark => bookmark.postId));
+      setBookmarkedPosts(bookmarkedPostIds);
+    } catch (err) {
+      console.error('Error fetching bookmarks:', err);
+    }
   };
 
   useEffect(() => {
@@ -155,6 +181,9 @@ export default function Dashboard() {
           }
         }
         
+        // Fetch bookmarks
+        await fetchBookmarks();
+        
         setLoading(false);
       } catch (err) {
         setError('Failed to fetch posts. Please try again later.');
@@ -189,10 +218,11 @@ export default function Dashboard() {
     // Apply subject and grade filters
     const matchesSubject = !selectedSubject || post.subject === selectedSubject;
     const matchesGrade = !selectedGrade || post.grade === selectedGrade;
+    const matchesBookmark = !showBookmarkedOnly || bookmarkedPosts.has(post.id);
     
-    // If search term is empty, only apply subject and grade filters
+    // If search term is empty, only apply subject, grade, and bookmark filters
     if (!searchTerm) {
-      return matchesSubject && matchesGrade;
+      return matchesSubject && matchesGrade && matchesBookmark;
     }
     
     // Search across all relevant fields
@@ -207,7 +237,7 @@ export default function Dashboard() {
       (post.tutorInfo?.fullname || '').toLowerCase().includes(searchTermLower) ||
       (post.tutorInfo?.username || '').toLowerCase().includes(searchTermLower);
     
-    return matchesSearch && matchesSubject && matchesGrade;
+    return matchesSearch && matchesSubject && matchesGrade && matchesBookmark;
   });
 
   const subjects = Array.from(new Set(posts.map(post => post.subject)));
@@ -264,6 +294,35 @@ export default function Dashboard() {
 
   const closeProfilePreview = () => {
     setSelectedUserId(null);
+  };
+
+  // Add bookmark toggle handler
+  const handleBookmarkToggle = async (postId: string) => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
+    setBookmarkLoading(prev => ({ ...prev, [postId]: true }));
+
+    try {
+      if (bookmarkedPosts.has(postId)) {
+        await api.delete(`/api/bookmarks/${postId}`);
+        setBookmarkedPosts(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(postId);
+          return newSet;
+        });
+      } else {
+        await api.post('/api/bookmarks', { postId });
+        setBookmarkedPosts(prev => new Set([...prev, postId]));
+      }
+    } catch (err) {
+      console.error('Error toggling bookmark:', err);
+      setError('Failed to update bookmark. Please try again.');
+    } finally {
+      setBookmarkLoading(prev => ({ ...prev, [postId]: false }));
+    }
   };
 
   if (loading) {
@@ -343,6 +402,22 @@ export default function Dashboard() {
                   ))}
                 </select>
               </div>
+              {isAuthenticated && (
+                <button
+                  onClick={() => setShowBookmarkedOnly(!showBookmarkedOnly)}
+                  className={`inline-flex items-center px-4 py-2 border sm:text-sm ${
+                    showBookmarkedOnly 
+                      ? 'border-yellow-400 bg-yellow-50 text-yellow-700' 
+                      : 'border-indigo-300 bg-white bg-opacity-90 text-gray-700'
+                  } h-[38px] rounded-md focus:outline-none focus:ring-2 focus:ring-white focus:border-white transition-colors`}
+                >
+                  <FontAwesomeIcon 
+                    icon={showBookmarkedOnly ? faBookmarkSolid : faBookmarkRegular} 
+                    className="mr-2" 
+                  />
+                  {showBookmarkedOnly ? 'Showing Bookmarked' : 'Show Bookmarked'}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -352,18 +427,36 @@ export default function Dashboard() {
           {filteredPosts.map(post => (
             <div key={post.id} className="bg-white overflow-hidden shadow-md rounded-lg border border-gray-200 hover:shadow-lg transition-shadow duration-300">
               {/* Header with subject info */}
-              <div className="bg-indigo-50 border-b border-gray-200 px-4 py-3 flex items-center">
-                <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 mr-3">
-                  <FontAwesomeIcon icon={faBook} className="h-5 w-5" />
+              <div className="bg-indigo-50 border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 mr-3">
+                    <FontAwesomeIcon icon={faBook} className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <span className="font-medium text-indigo-700">{post.subject}</span>
+                    {post.grade && (
+                      <span className="ml-2 text-xs bg-indigo-100 text-indigo-600 py-0.5 px-2 rounded-full">
+                        {post.grade}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <span className="font-medium text-indigo-700">{post.subject}</span>
-                  {post.grade && (
-                    <span className="ml-2 text-xs bg-indigo-100 text-indigo-600 py-0.5 px-2 rounded-full">
-                      {post.grade}
-                    </span>
-                  )}
-                </div>
+                {isAuthenticated && (
+                  <button
+                    onClick={() => handleBookmarkToggle(post.id)}
+                    disabled={bookmarkLoading[post.id]}
+                    className={`p-2 rounded-full hover:bg-gray-100 transition-colors ${
+                      bookmarkLoading[post.id] ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    <FontAwesomeIcon 
+                      icon={bookmarkedPosts.has(post.id) ? faBookmarkSolid : faBookmarkRegular}
+                      className={`h-5 w-5 ${
+                        bookmarkedPosts.has(post.id) ? 'text-yellow-500' : 'text-gray-400'
+                      }`}
+                    />
+                  </button>
+                )}
               </div>
               
               <div className="px-4 py-5 sm:p-6">

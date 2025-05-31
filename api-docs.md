@@ -460,6 +460,82 @@ The following error codes may be returned by booking endpoints:
   - `403 Forbidden`: If user is not associated with this booking
   - `404 Not Found`: If review or booking doesn't exist
 
+## Bookmarks Endpoints
+
+### Create Bookmark
+- **Route**: `POST /api/bookmarks`
+- **Access**: Authenticated users
+- **Description**: Bookmark a post for later reference
+- **Headers**: 
+  - `Authorization: Bearer <jwt_token>`
+- **Request Body**:
+```json
+{
+    "postId": "string"
+}
+```
+- **Response (200 OK)**:
+```json
+{
+    "id": "string",
+    "userId": "string",
+    "postId": "string",
+    "createdAt": "string"  // ISO-8601 format
+}
+```
+- **Error Responses**:
+  - `400 Bad Request`: If post is already bookmarked
+  - `404 Not Found`: If post doesn't exist
+
+### Get User's Bookmarks
+- **Route**: `GET /api/bookmarks`
+- **Access**: Authenticated users
+- **Description**: Get all bookmarks for the current user
+- **Headers**: 
+  - `Authorization: Bearer <jwt_token>`
+- **Response (200 OK)**:
+```json
+[
+    {
+        "id": "string",
+        "userId": "string",
+        "postId": "string",
+        "createdAt": "string",  // ISO-8601 format
+        "post": {
+            // Full post object with all its details
+            "id": "string",
+            "userId": "string",
+            "title": "string",
+            "description": "string",
+            "subject": "string",
+            "location": "string",
+            "schedules": [
+                {
+                    "weekday": "string",
+                    "startHour": "string",
+                    "endHour": "string"
+                }
+            ],
+            "grade": "string",
+            "createdAt": "string",
+            "visibility": "boolean",
+            "approvedStudent": "number",
+            "maxStudent": "number",
+            "startTime": "string",
+            "endTime": "string"
+        }
+    }
+]
+```
+
+### Delete Bookmark
+- **Route**: `DELETE /api/bookmarks/{postId}`
+- **Access**: Authenticated users
+- **Description**: Remove a bookmark
+- **Headers**: 
+  - `Authorization: Bearer <jwt_token>`
+- **Response (200 OK)**: Empty response
+
 ## Admin Endpoints
 
 ### Get Users (with optional filtering)
