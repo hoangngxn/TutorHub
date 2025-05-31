@@ -10,7 +10,7 @@ export interface BookingItem {
   tutorId: string;
   postId: string;
   subject: string;
-  schedule: Schedule;
+  schedules: Schedule[];
   status: 'PENDING' | 'CONFIRMED' | 'CANCELED' | 'COMPLETED';
   createdAt: string;
 }
@@ -32,7 +32,7 @@ export interface PostGroup {
   postId: string;
   subject: string;
   postTitle?: string;
-  schedule: Schedule;
+  schedules: Schedule[];
   bookings: EnhancedBooking[];
 }
 
@@ -44,9 +44,18 @@ export interface FilterState {
   sortBy: string;
 }
 
-// Helper function to format schedule
+// Helper function to format a single schedule
 export const formatSchedule = (schedule: Schedule): string => {
   const startTime = schedule.startHour.split(':').slice(0, 2).join(':');
   const endTime = schedule.endHour.split(':').slice(0, 2).join(':');
   return `${schedule.weekday}: ${startTime} - ${endTime}`;
+};
+
+// Helper function to format multiple schedules
+export const formatSchedules = (schedules: Schedule[]): string => {
+  return schedules.map(schedule => {
+    const startTime = schedule.startHour.split(':').slice(0, 2).join(':');
+    const endTime = schedule.endHour.split(':').slice(0, 2).join(':');
+    return `${schedule.weekday}: ${startTime} - ${endTime}`;
+  }).join(', ');
 }; 

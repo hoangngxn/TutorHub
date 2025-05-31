@@ -282,7 +282,7 @@ The following error codes may be returned by booking endpoints:
 ### Create Booking
 - **Route**: `POST /api/bookings`
 - **Access**: Authenticated students only
-- **Description**: Create a new booking for a post (automatically assigns the first available schedule)
+- **Description**: Create a new booking for a post (includes all schedules from the post)
 - **Headers**: 
   - `Authorization: Bearer <jwt_token>`
 - **Request Body**:
@@ -299,11 +299,13 @@ The following error codes may be returned by booking endpoints:
     "tutorId": "string",
     "postId": "string",
     "subject": "string",
-    "schedule": {
-        "weekday": "string",     // "MONDAY" to "SUNDAY"
-        "startHour": "string",   // "HH:mm" format (24-hour)
-        "endHour": "string"      // "HH:mm" format (24-hour)
-    },
+    "schedules": [
+        {
+            "weekday": "string",     // "MONDAY" to "SUNDAY"
+            "startHour": "string",   // "HH:mm" format (24-hour)
+            "endHour": "string"      // "HH:mm" format (24-hour)
+        }
+    ],
     "status": "PENDING",
     "createdAt": "string"
 }
@@ -315,7 +317,7 @@ The following error codes may be returned by booking endpoints:
     - Code: `POST_NOT_AVAILABLE` - If post is no longer available
     - Code: `POST_FULL` - If post has reached maximum students
     - Code: `POST_ENDED` - If post has already ended
-    - Code: `SCHEDULE_OVERLAP` - If schedule conflicts with existing bookings
+    - Code: `SCHEDULE_OVERLAP` - If any of the post's schedules conflict with student's existing bookings
 
 ### Get My Bookings
 - **Route**: `GET /api/bookings`
@@ -335,11 +337,13 @@ The following error codes may be returned by booking endpoints:
             "tutorId": "string",
             "postId": "string",
             "subject": "string",
-            "schedule": {
-                "weekday": "string",     // "MONDAY" to "SUNDAY"
-                "startHour": "string",   // "HH:mm" format (24-hour)
-                "endHour": "string"      // "HH:mm" format (24-hour)
-            },
+            "schedules": [
+                {
+                    "weekday": "string",     // "MONDAY" to "SUNDAY"
+                    "startHour": "string",   // "HH:mm" format (24-hour)
+                    "endHour": "string"      // "HH:mm" format (24-hour)
+                }
+            ],
             "status": "string", // "PENDING", "CONFIRMED", "CANCELED", or "COMPLETED"
             "createdAt": "string"
         }

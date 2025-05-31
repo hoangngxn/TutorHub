@@ -6,7 +6,24 @@ import { faCalendarAlt, faClock, faUser, faTimes, faStar, faSearch } from '@fort
 import ProfilePreview from '../../components/user/ProfilePreview';
 import ReviewModal from '../../components/review/ReviewModal';
 import type { EnhancedBooking, FilterState } from '../../types/booking';
-import { formatSchedule } from '../../types/booking';
+import { formatSchedules } from '../../types/booking';
+
+interface Schedule {
+  weekday: string;
+  startHour: string;
+  endHour: string;
+}
+
+interface BookingItem {
+  id: string;
+  studentId: string;
+  tutorId: string;
+  postId: string;
+  subject: string;
+  schedules: Schedule[];  // Changed from schedule to schedules array
+  status: 'PENDING' | 'CONFIRMED' | 'CANCELED' | 'COMPLETED';
+  createdAt: string;
+}
 
 export default function StudentBooking() {
   const { token } = useAuth();
@@ -389,8 +406,8 @@ export default function StudentBooking() {
                       <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 flex items-center justify-center">
                         <div className="flex items-center">
                           <FontAwesomeIcon icon={faClock} className="h-5 w-5 text-indigo-500 mr-2" />
-                          <span className="text-sm font-medium text-gray-500">Schedule:</span>
-                          <span className="ml-2 text-sm text-gray-900">{formatSchedule(booking.schedule)}</span>
+                          <span className="text-sm font-medium text-gray-500">Schedules:</span>
+                          <span className="ml-2 text-sm text-gray-900 flex-1">{formatSchedules(booking.schedules)}</span>
                         </div>
                       </div>
                       

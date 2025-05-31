@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCalendarAlt, faClock, faUser, faCheck, faTimes, faChevronDown, faChevronUp, faBook, faGraduationCap, faBriefcase, faSearch } from '@fortawesome/free-solid-svg-icons';
 import ProfilePreview from '../../components/user/ProfilePreview';
 import type { EnhancedBooking, FilterState, PostGroup } from '../../types/booking';
-import { formatSchedule } from '../../types/booking';
+import { formatSchedule, formatSchedules } from '../../types/booking';
 
 export default function TutorBooking() {
   const { token } = useAuth();
@@ -48,7 +48,7 @@ export default function TutorBooking() {
             postId: booking.postId,
             subject: booking.subject,
             postTitle: booking.postTitle,
-            schedule: booking.schedule,
+            schedules: booking.schedules,
             bookings: []
           };
         }
@@ -211,7 +211,7 @@ export default function TutorBooking() {
           postId: booking.postId,
           subject: booking.subject,
           postTitle: booking.postTitle,
-          schedule: booking.schedule,
+          schedules: booking.schedules,
           bookings: []
         };
       }
@@ -411,7 +411,7 @@ export default function TutorBooking() {
                               <span className="mr-2 text-indigo-500">{group.subject}</span>
                             )}
                             <FontAwesomeIcon icon={faClock} className="h-4 w-4 text-gray-400 mr-2" />
-                            {formatSchedule(group.schedule)} • {group.bookings.length} bookings
+                            {formatSchedules(group.schedules)} • {group.bookings.length} bookings
                           </p>
                         </div>
                         <div className="flex items-center space-x-2">

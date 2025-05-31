@@ -3,32 +3,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronLeft, faChevronRight, faSpinner, faCalendarAlt, faClock, faUser } from '@fortawesome/free-solid-svg-icons';
+import type { Schedule, EnhancedBooking } from '../../types/booking';
 
-interface Schedule {
-  weekday: string;
-  startHour: string;
-  endHour: string;
-}
-
-interface Booking {
-  id: string;
-  studentId: string;
-  tutorId: string;
-  postId: string;
-  subject: string;
-  schedule: Schedule;
-  status: string;
-  createdAt: string;
-  studentInfo?: {
-    fullname?: string;
-    username: string;
-  };
-  tutorInfo?: {
-    fullname?: string;
-    username: string;
-  };
-  postTitle?: string;
-}
+interface Booking extends EnhancedBooking {}
 
 const WEEKDAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
 const HOURS = Array.from({ length: 15 }, (_, i) => `${(i + 7).toString().padStart(2, '0')}:00`); // 7:00 to 22:00
@@ -114,22 +91,26 @@ const CalendarPage = () => {
   const getTimeSlotBookings = (weekday: string, hour: string) => {
     if (user?.role === 'STUDENT') {
       return bookings.filter(booking => {
-        const bookingStartHour = parseInt(booking.schedule.startHour.split(':')[0]);
-        const currentHour = parseInt(hour.split(':')[0]);
-        const bookingEndHour = parseInt(booking.schedule.endHour.split(':')[0]);
-        return booking.schedule.weekday === weekday && 
-               bookingStartHour <= currentHour && 
-               currentHour < bookingEndHour;
+        return booking.schedules.some(schedule => {
+          const bookingStartHour = parseInt(schedule.startHour.split(':')[0]);
+          const currentHour = parseInt(hour.split(':')[0]);
+          const bookingEndHour = parseInt(schedule.endHour.split(':')[0]);
+          return schedule.weekday === weekday && 
+                 bookingStartHour <= currentHour && 
+                 currentHour < bookingEndHour;
+        });
       });
     } else {
       // For tutors, group bookings by post
       const slotBookings = bookings.filter(booking => {
-        const bookingStartHour = parseInt(booking.schedule.startHour.split(':')[0]);
-        const currentHour = parseInt(hour.split(':')[0]);
-        const bookingEndHour = parseInt(booking.schedule.endHour.split(':')[0]);
-        return booking.schedule.weekday === weekday && 
-               bookingStartHour <= currentHour && 
-               currentHour < bookingEndHour;
+        return booking.schedules.some(schedule => {
+          const bookingStartHour = parseInt(schedule.startHour.split(':')[0]);
+          const currentHour = parseInt(hour.split(':')[0]);
+          const bookingEndHour = parseInt(schedule.endHour.split(':')[0]);
+          return schedule.weekday === weekday && 
+                 bookingStartHour <= currentHour && 
+                 currentHour < bookingEndHour;
+        });
       });
 
       // Group by postId and return only one booking per post
@@ -150,28 +131,40 @@ const CalendarPage = () => {
     return `${start} - ${end}`;
   };
 
-  const calculateBookingHeight = (booking: Booking) => {
-    const startHour = parseInt(booking.schedule.startHour.split(':')[0]);
-    const endHour = parseInt(booking.schedule.endHour.split(':')[0]);
+  const calculateBookingHeight = (booking: Booking, weekday: string) => {
+    const schedule = booking.schedules.find(s => s.weekday === weekday);
+    if (!schedule) return '4rem'; // Default height if no matching schedule
+    
+    const startHour = parseInt(schedule.startHour.split(':')[0]);
+    const endHour = parseInt(schedule.endHour.split(':')[0]);
     const duration = endHour - startHour;
     // Subtract 0.25rem (4px) from the bottom to prevent overlap
     return `calc(${duration * 4}rem - 0.25rem)`;
   };
 
-  const shouldShowBookingInSlot = (booking: Booking, hour: string) => {
-    const slotHour = parseInt(hour.split(':')[0]);
-    const bookingStartHour = parseInt(booking.schedule.startHour.split(':')[0]);
-    return slotHour === bookingStartHour;
+  const shouldShowBookingInSlot = (booking: Booking, weekday: string, hour: string) => {
+    return booking.schedules.some(schedule => {
+      const slotHour = parseInt(hour.split(':')[0]);
+      const bookingStartHour = parseInt(schedule.startHour.split(':')[0]);
+      return schedule.weekday === weekday && slotHour === bookingStartHour;
+    });
   };
 
-  const renderBookingContent = (booking: Booking) => {
+  const getScheduleForWeekday = (booking: Booking, weekday: string): Schedule | undefined => {
+    return booking.schedules.find(schedule => schedule.weekday === weekday);
+  };
+
+  const renderBookingContent = (booking: Booking, weekday: string) => {
+    const schedule = getScheduleForWeekday(booking, weekday);
+    if (!schedule) return null;
+
     if (user?.role === 'STUDENT') {
       return (
         <>
           <div className="font-medium text-sm mb-1">{booking.postTitle || booking.subject}</div>
           <div className="flex items-center text-xs text-indigo-700 mb-1">
             <FontAwesomeIcon icon={faClock} className="h-3 w-3 mr-1" />
-            {formatBookingTime(booking.schedule)}
+            {formatBookingTime(schedule)}
           </div>
           <div className="flex items-center text-xs text-indigo-700">
             <FontAwesomeIcon icon={faUser} className="h-3 w-3 mr-1" />
@@ -186,10 +179,10 @@ const CalendarPage = () => {
           <div className="font-medium text-sm mb-1">{booking.postTitle || booking.subject}</div>
           <div className="flex items-center text-xs text-indigo-700">
             <FontAwesomeIcon icon={faClock} className="h-3 w-3 mr-1" />
-            {formatBookingTime(booking.schedule)}
+            {formatBookingTime(schedule)}
           </div>
           <div className="text-xs text-indigo-700 mt-1">
-            {booking.status === 'CONFIRMED' && `${getBookingCountForPost(booking.postId, booking.schedule.weekday, booking.schedule.startHour)} bookings`}
+            {booking.status === 'CONFIRMED' && `${getBookingCountForPost(booking.postId, weekday, schedule.startHour)} bookings`}
           </div>
         </>
       );
@@ -199,8 +192,7 @@ const CalendarPage = () => {
   const getBookingCountForPost = (postId: string, weekday: string, startHour: string) => {
     return bookings.filter(b => 
       b.postId === postId && 
-      b.schedule.weekday === weekday && 
-      b.schedule.startHour === startHour
+      b.schedules.some(s => s.weekday === weekday && s.startHour === startHour)
     ).length;
   };
 
@@ -223,8 +215,13 @@ const CalendarPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <FontAwesomeIcon icon={faSpinner} className="h-8 w-8 text-indigo-600 animate-spin" />
+      <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+            <p className="mt-4 text-lg text-gray-500">Loading calendar...</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -275,17 +272,17 @@ const CalendarPage = () => {
                   return (
                     <div key={`${day}-${hour}`} className="relative p-2 border-r last:border-r-0 h-16 hover:bg-gray-50 transition-colors">
                       {slotBookings.map(booking => (
-                        shouldShowBookingInSlot(booking, hour) && (
+                        shouldShowBookingInSlot(booking, day, hour) && (
                           <div
                             key={booking.id}
                             className="absolute left-0 right-0 mx-2 bg-indigo-200 hover:bg-indigo-300 text-indigo-900 p-3 rounded-lg shadow-sm transition-colors overflow-hidden"
                             style={{
-                              height: calculateBookingHeight(booking),
+                              height: calculateBookingHeight(booking, day),
                               zIndex: 10,
                               top: '0.25rem'
                             }}
                           >
-                            {renderBookingContent(booking)}
+                            {renderBookingContent(booking, day)}
                           </div>
                         )
                       ))}

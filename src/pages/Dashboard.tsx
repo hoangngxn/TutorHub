@@ -49,7 +49,7 @@ interface Booking {
   tutorId: string;
   postId: string;
   subject: string;
-  schedule: Schedule;
+  schedules: Schedule[];
   status: string;
   createdAt: string;
 }
@@ -110,10 +110,12 @@ export default function Dashboard() {
     if (!userBookings) return false; // Handle case when userBookings is not loaded yet
     return userBookings.some((booking: Booking) => 
       booking.status !== 'CANCELED' && // Only check non-canceled bookings
-      post.schedules.some(schedule => 
-        booking.schedule.weekday === schedule.weekday && // Same weekday
-        parseInt(booking.schedule.startHour) < parseInt(schedule.endHour) && // Booking starts before post ends
-        parseInt(schedule.startHour) < parseInt(booking.schedule.endHour) // Post starts before booking ends
+      booking.schedules.some(bookingSchedule =>
+        post.schedules.some(postSchedule => 
+          bookingSchedule.weekday === postSchedule.weekday && // Same weekday
+          parseInt(bookingSchedule.startHour) < parseInt(postSchedule.endHour) && // Booking starts before post ends
+          parseInt(postSchedule.startHour) < parseInt(bookingSchedule.endHour) // Post starts before booking ends
+        )
       )
     );
   };
@@ -473,7 +475,7 @@ export default function Dashboard() {
                   <div className="flex items-center text-sm text-gray-600">
                     <FontAwesomeIcon icon={faClock} className="flex-shrink-0 mr-2 h-4 w-4 text-gray-500" />
                     <span className="font-medium text-gray-700">Schedules:</span>
-                    <span className="ml-2">{formatSchedules(post.schedules)}</span>
+                    <span className="ml-2 flex-1">{formatSchedules(post.schedules)}</span>
                   </div>
                   
                   <div className="flex items-center text-sm text-gray-600">
