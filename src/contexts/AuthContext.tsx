@@ -85,10 +85,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    window.location.href = '/';
     setToken(null);
     setUser(null);
     localStorage.removeItem('token');
-    window.location.href = '/';
   };
 
   const updateProfile = async (data: Partial<User>) => {
