@@ -121,7 +121,7 @@ export default function CreatePostPage() {
       await api.post('/api/posts', dataToSubmit);
       navigate('/posts/manage');
     } catch (err) {
-      setError('Failed to create post. Please try again.');
+      setError('Failed to create post. Schedule is not available.');
     } finally {
       setIsLoading(false);
     }

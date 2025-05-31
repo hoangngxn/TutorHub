@@ -16,6 +16,7 @@ import CreatePostPage from './pages/posts/CreatePostPage';
 import ManagePostsPage from './pages/posts/ManagePostsPage';
 import EditPostPage from './pages/posts/EditPostPage';
 import BookingManagementPage from './pages/bookings/BookingManagementPage';
+import CalendarPage from './pages/calendar/CalendarPage';
 
 // Admin pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -95,6 +96,14 @@ function App() {
                 element={
                   <PrivateRoute>
                     <BookingManagementPage />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/calendar"
+                element={
+                  <PrivateRoute>
+                    <CalendarPage />
                   </PrivateRoute>
                 }
               />
