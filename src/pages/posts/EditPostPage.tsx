@@ -113,11 +113,10 @@ export default function EditPostPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     
-    // Special handling for dates to set time to 00:00
+    // Special handling for dates
     if (name === 'startTime' || name === 'endTime') {
-      // Convert the date to ISO string with time set to 00:00
-      const date = new Date(value);
-      date.setHours(0, 0, 0, 0);
+      // For date inputs, store the date at noon UTC to avoid timezone issues
+      const date = new Date(value + 'T12:00:00Z');
       setFormData(prev => ({
         ...prev,
         [name]: date.toISOString()
