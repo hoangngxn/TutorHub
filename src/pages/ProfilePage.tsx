@@ -1,7 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faEnvelope, faPhone, faMapMarkerAlt, faEdit, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faUser, faEnvelope, faPhone, faMapMarkerAlt, faEdit, faSave, faTimes, faStar, faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
+import { faStar as farStar } from '@fortawesome/free-regular-svg-icons';
+import api from '../services/api';
+
+interface ReviewStudent {
+  id: string;
+  username: string;
+  fullname?: string;
+  avatar?: string;
+}
+
+interface Review {
+  id: string;
+  bookingId: string;
+  studentId: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  postTitle?: string;
+  student?: ReviewStudent;
+}
 
 export default function ProfilePage() {
   const { user, updateProfile } = useAuth();
@@ -15,6 +35,126 @@ export default function ProfilePage() {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [averageRating, setAverageRating] = useState<number>(0);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [showReviews, setShowReviews] = useState(true);
+  const [studentInfoMap, setStudentInfoMap] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    if (user?.role === 'TUTOR') {
+      fetchTutorReviews();
+    }
+  }, [user]);
+
+  const fetchTutorReviews = async () => {
+    if (!user) return;
+    
+    try {
+      setReviewsLoading(true);
+      const response = await api.get(`/api/reviews/tutor/${user.id}`);
+      const fetchedReviews = response.data;
+      
+      // Calculate average rating
+      if (fetchedReviews.length > 0) {
+        const sum = fetchedReviews.reduce((acc: number, review: Review) => acc + review.rating, 0);
+        setAverageRating(parseFloat((sum / fetchedReviews.length).toFixed(1)));
+      }
+
+      // Fetch student information for each review
+      const studentIds = fetchedReviews.map((review: Review) => review.studentId).filter(Boolean);
+      const uniqueStudentIds = [...new Set(studentIds)] as string[];
+      
+      const studentInfoPromises = uniqueStudentIds.map(async (studentId: string) => {
+        try {
+          const studentResponse = await api.get(`/api/auth/users/${studentId}`);
+          return { id: studentId, data: studentResponse.data };
+        } catch (error) {
+          console.error(`Error fetching student info for ID ${studentId}:`, error);
+          return { 
+            id: studentId, 
+            data: { 
+              id: studentId, 
+              username: `student_${studentId.substring(0, 5)}`,
+              avatar: undefined
+            } 
+          };
+        }
+      });
+      
+      const studentInfoResults = await Promise.all(studentInfoPromises);
+      const studentMap: Record<string, any> = {};
+      
+      studentInfoResults.forEach(result => {
+        studentMap[result.id] = result.data;
+      });
+      
+      setStudentInfoMap(studentMap);
+      setReviews(fetchedReviews);
+    } catch (err) {
+      console.error('Error fetching tutor reviews:', err);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  const toggleReviews = () => {
+    setShowReviews(!showReviews);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString(undefined, { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
+  const renderStars = (rating: number) => {
+    return (
+      <div className="flex">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <FontAwesomeIcon
+            key={star}
+            icon={star <= rating ? faStar : farStar}
+            className={star <= rating ? "text-yellow-400" : "text-gray-300"}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  const getStudentInfo = (review: Review) => {
+    // First try to use the student object from the review
+    if (review.student) {
+      return {
+        id: review.student.id,
+        username: review.student.username,
+        fullname: review.student.fullname,
+        avatar: review.student.avatar
+      };
+    }
+    
+    // Fall back to our locally fetched student info
+    const studentId = review.studentId;
+    if (studentId && studentInfoMap[studentId]) {
+      const student = studentInfoMap[studentId];
+      return {
+        id: student.id,
+        username: student.username || `Student ${student.id.substring(0, 5)}`,
+        fullname: student.fullname,
+        avatar: student.avatar
+      };
+    }
+    
+    // Last resort default
+    return {
+      id: review.studentId || 'unknown',
+      username: 'Anonymous Student',
+      fullname: undefined,
+      avatar: undefined
+    };
+  };
 
   // Validation functions
   const isValidEmail = (email: string): boolean => {
@@ -273,6 +413,92 @@ export default function ProfilePage() {
                   <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                     <h4 className="text-sm font-medium text-gray-700 mb-2">Bio</h4>
                     <p className="text-gray-900 whitespace-pre-line">{user.bio}</p>
+                  </div>
+                )}
+
+                {/* Reviews Section for Tutors */}
+                {user?.role === 'TUTOR' && (
+                  <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900">My Reviews</h3>
+                        {reviews.length > 0 && (
+                          <div className="mt-1 flex items-center">
+                            <span className="text-yellow-500 font-bold mr-1">{averageRating}</span>
+                            <FontAwesomeIcon icon={faStar} className="text-yellow-400 mr-1" />
+                            <span className="text-sm text-gray-500">({reviews.length} reviews)</span>
+                          </div>
+                        )}
+                      </div>
+                      <button 
+                        onClick={toggleReviews}
+                        className="text-indigo-600 hover:text-indigo-800 focus:outline-none"
+                      >
+                        <FontAwesomeIcon 
+                          icon={showReviews ? faChevronUp : faChevronDown} 
+                          className="h-5 w-5"
+                        />
+                      </button>
+                    </div>
+
+                    {showReviews && (
+                      <div className="space-y-4">
+                        {reviewsLoading ? (
+                          <div className="flex justify-center py-4">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                          </div>
+                        ) : reviews.length === 0 ? (
+                          <p className="text-center text-gray-500 py-4">No reviews yet</p>
+                        ) : (
+                          reviews.map(review => {
+                            const studentInfo = getStudentInfo(review);
+                            return (
+                              <div key={review.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                                <div className="flex justify-between items-start">
+                                  <div className="flex items-center">
+                                    {studentInfo.avatar ? (
+                                      <img 
+                                        src={studentInfo.avatar} 
+                                        alt={`${studentInfo.fullname || studentInfo.username}'s avatar`}
+                                        className="h-10 w-10 rounded-full mr-3 object-cover"
+                                      />
+                                    ) : (
+                                      <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold mr-3">
+                                        {(studentInfo.fullname || studentInfo.username).charAt(0).toUpperCase()}
+                                      </div>
+                                    )}
+                                    <div>
+                                      <div className="text-sm font-medium text-gray-900">
+                                        {studentInfo.fullname || studentInfo.username}
+                                      </div>
+                                      <div className="flex items-center mt-1">
+                                        {renderStars(review.rating)}
+                                        <span className="ml-2 text-sm text-gray-700">{review.rating}/5</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <span className="text-xs text-gray-500">{formatDate(review.createdAt)}</span>
+                                </div>
+                                
+                                {review.postTitle && (
+                                  <div className="mt-2">
+                                    <p className="text-xs font-medium text-indigo-600">{review.postTitle}</p>
+                                  </div>
+                                )}
+                                
+                                {review.comment && (
+                                  <div className="mt-3">
+                                    <p className="text-sm text-gray-700 bg-white p-3 rounded-lg border border-gray-100">
+                                      {review.comment}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

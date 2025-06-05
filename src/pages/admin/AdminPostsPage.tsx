@@ -5,6 +5,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faEye, faChalkboardTeacher, faUserGraduate, faClock, faMapMarkerAlt, faEyeSlash, faGraduationCap, faSearch, faFilter } from '@fortawesome/free-solid-svg-icons';
 
+interface Schedule {
+  weekday: string;
+  startHour: string;
+  endHour: string;
+}
+
 interface Post {
   id: string;
   userId: string;
@@ -12,18 +18,30 @@ interface Post {
   description: string;
   subject: string;
   location: string;
-  schedule: string;
+  schedules: Schedule[];
   grade: string;
   createdAt: string;
   visibility: boolean;
   approvedStudent: number;
   maxStudent: number;
+  startTime: string;
+  endTime: string;
   tutorInfo?: {
     id: string;
     username: string;
     fullname?: string;
   };
 }
+
+// Add helper function to format schedules
+const formatSchedules = (schedules: Schedule[]): string => {
+  return schedules.map(schedule => {
+    // Remove seconds from time display
+    const startTime = schedule.startHour.split(':').slice(0, 2).join(':');
+    const endTime = schedule.endHour.split(':').slice(0, 2).join(':');
+    return `${schedule.weekday}: ${startTime} - ${endTime}`;
+  }).join(', ');
+};
 
 export default function AdminPostsPage() {
   const { user, isAuthenticated } = useAuth();
@@ -155,7 +173,7 @@ export default function AdminPostsPage() {
       post.description.toLowerCase().includes(searchTermLower) ||
       post.subject.toLowerCase().includes(searchTermLower) ||
       post.location.toLowerCase().includes(searchTermLower) ||
-      post.schedule.toLowerCase().includes(searchTermLower) ||
+      post.schedules.some(schedule => schedule.weekday.toLowerCase().includes(searchTermLower)) ||
       (post.grade || '').toLowerCase().includes(searchTermLower) ||
       (post.tutorInfo?.fullname || '').toLowerCase().includes(searchTermLower) ||
       (post.tutorInfo?.username || '').toLowerCase().includes(searchTermLower);
@@ -313,7 +331,10 @@ export default function AdminPostsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{post.location}</div>
-                      <div className="text-xs text-gray-500">{post.schedule}</div>
+                      <div className="text-xs text-gray-500">{formatSchedules(post.schedules)}</div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        Course Period: {new Date(post.startTime).toLocaleDateString()} - {new Date(post.endTime).toLocaleDateString()}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <span className={post.approvedStudent >= post.maxStudent ? 'text-red-600 font-medium' : ''}>

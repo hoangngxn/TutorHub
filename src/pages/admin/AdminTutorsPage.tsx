@@ -36,6 +36,12 @@ interface Tutor {
   averageRating?: number;
 }
 
+interface Schedule {
+  weekday: string;
+  startHour: string;
+  endHour: string;
+}
+
 interface Post {
   id: string;
   userId: string;
@@ -43,12 +49,14 @@ interface Post {
   description: string;
   subject: string;
   location: string;
-  schedule: string;
+  schedules: Schedule[];
   grade: string;
   createdAt: string;
   visibility: boolean;
   approvedStudent: number;
   maxStudent: number;
+  startTime: string;
+  endTime: string;
 }
 
 interface ReviewStudent {
@@ -294,6 +302,15 @@ export default function AdminTutorsPage() {
     });
   };
 
+  const formatSchedules = (schedules: Schedule[]): string => {
+    return schedules.map(schedule => {
+      // Remove seconds from time display
+      const startTime = schedule.startHour.split(':').slice(0, 2).join(':');
+      const endTime = schedule.endHour.split(':').slice(0, 2).join(':');
+      return `${schedule.weekday}: ${startTime} - ${endTime}`;
+    }).join(', ');
+  };
+
   const filteredTutors = tutors.filter(tutor => {
     if (!searchTerm) return true;
     
@@ -530,7 +547,7 @@ export default function AdminTutorsPage() {
                       
                       <div className="flex items-center text-sm text-gray-500">
                         <FontAwesomeIcon icon={faCalendarAlt} className="h-4 w-4 text-indigo-400 mr-2" />
-                        {post.schedule}
+                        {formatSchedules(post.schedules)}
                       </div>
                       
                       <div className="flex items-center text-sm text-gray-500">
@@ -551,7 +568,7 @@ export default function AdminTutorsPage() {
                       </div>
                       
                       <div className="text-xs text-gray-400">
-                        Created: {formatDate(post.createdAt)}
+                        Course Period: {new Date(post.startTime).toLocaleDateString()} - {new Date(post.endTime).toLocaleDateString()}
                       </div>
                     </div>
                   </div>
