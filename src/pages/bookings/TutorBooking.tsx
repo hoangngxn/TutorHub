@@ -65,7 +65,7 @@ export default function TutorBooking() {
     try {
       const response = await api.get('/api/bookings');
       const enhancedBookings = await Promise.all(response.data.map(async (booking: any) => {
-        let studentInfo, postTitle;
+        let studentInfo, postTitle, schedules;
         
         try {
           const studentResponse = await api.get(`/api/auth/users/${booking.studentId}`);
@@ -86,15 +86,19 @@ export default function TutorBooking() {
         try {
           const postResponse = await api.get(`/api/posts/${booking.postId}`);
           postTitle = postResponse.data.title;
+          // Get schedules from post response if available
+          schedules = postResponse.data.schedules || [];
         } catch (error) {
           console.error(`Error fetching post info for ID ${booking.postId}:`, error);
           postTitle = booking.subject;
+          schedules = booking.schedules || [];
         }
         
         return {
           ...booking,
           studentInfo,
-          postTitle
+          postTitle,
+          schedules: Array.isArray(schedules) ? schedules : []
         };
       }));
       
@@ -211,7 +215,7 @@ export default function TutorBooking() {
           postId: booking.postId,
           subject: booking.subject,
           postTitle: booking.postTitle,
-          schedules: booking.schedules,
+          schedules: booking.schedules || [],
           bookings: []
         };
       }
