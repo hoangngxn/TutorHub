@@ -2,13 +2,20 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronLeft, faChevronRight, faSpinner, faCalendarAlt, faClock, faUser } from '@fortawesome/free-solid-svg-icons';
+import { faChevronLeft, faChevronRight, faSpinner, faCalendarAlt, faClock, faUser, faSun, faMoon, faCoffee } from '@fortawesome/free-solid-svg-icons';
 import type { Schedule, EnhancedBooking } from '../../types/booking';
 
 interface Booking extends EnhancedBooking {}
 
 const WEEKDAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
 const HOURS = Array.from({ length: 15 }, (_, i) => `${(i + 7).toString().padStart(2, '0')}:00`); // 7:00 to 22:00
+
+const getTimeOfDay = (hour: string) => {
+  const hourNum = parseInt(hour);
+  if (hourNum >= 7 && hourNum < 12) return 'morning';
+  if (hourNum >= 12 && hourNum < 18) return 'afternoon';
+  return 'evening';
+};
 
 const CalendarPage = () => {
   const { user } = useAuth();
@@ -142,8 +149,19 @@ const CalendarPage = () => {
     const startHour = parseInt(schedule.startHour.split(':')[0]);
     const endHour = parseInt(schedule.endHour.split(':')[0]);
     const duration = endHour - startHour;
-    // Subtract 0.25rem (4px) from the bottom to prevent overlap
-    return `calc(${duration * 4}rem - 0.25rem)`;
+    
+    // Base height calculation (4rem per hour)
+    const baseHeight = duration * 4;
+    
+    // Add additional height for section headers if the booking spans across different time periods
+    let additionalHeight = 0;
+    
+    // Check if booking spans across time period boundaries (12:00 or 18:00)
+    if (startHour < 12 && endHour > 12) additionalHeight += 2; // Crosses morning to afternoon
+    if (startHour < 18 && endHour > 18) additionalHeight += 2; // Crosses afternoon to evening
+    
+    // Subtract a small amount to prevent overlap
+    return `calc(${baseHeight}rem + ${additionalHeight}rem - 0.25rem)`;
   };
 
   const shouldShowBookingInSlot = (booking: Booking, weekday: string, hour: string) => {
@@ -242,23 +260,38 @@ const CalendarPage = () => {
     <div className="min-h-screen bg-gray-100 py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="bg-indigo-600 rounded-lg shadow-lg p-6 mb-6">
+        <div className="bg-gradient-to-r from-indigo-600 to-indigo-800 rounded-lg shadow-lg p-6 mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <FontAwesomeIcon icon={faCalendarAlt} className="h-6 w-6 text-white mr-3" />
               <h1 className="text-2xl font-bold text-white">Class Calendar</h1>
             </div>
+          </div>
+        </div>
 
+        {/* Time Period Legend */}
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-4 flex space-x-6">
+          <div className="flex items-center">
+            <FontAwesomeIcon icon={faSun} className="h-4 w-4 text-yellow-500 mr-2" />
+            <span className="text-sm text-gray-600">Morning (7:00 - 12:00)</span>
+          </div>
+          <div className="flex items-center">
+            <FontAwesomeIcon icon={faCoffee} className="h-4 w-4 text-orange-500 mr-2" />
+            <span className="text-sm text-gray-600">Afternoon (12:00 - 18:00)</span>
+          </div>
+          <div className="flex items-center">
+            <FontAwesomeIcon icon={faMoon} className="h-4 w-4 text-indigo-500 mr-2" />
+            <span className="text-sm text-gray-600">Evening (18:00 - 22:00)</span>
           </div>
         </div>
 
         {/* Calendar Grid */}
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           {/* Weekday Headers */}
-          <div className="grid grid-cols-8 border-b bg-gray-50">
+          <div className="grid grid-cols-8 border-b bg-gradient-to-r from-gray-50 to-gray-100">
             <div className="p-4 text-sm font-medium text-gray-500 border-r">Time</div>
             {WEEKDAYS.map(day => (
-              <div key={day} className="p-4 text-sm font-medium text-gray-900 text-center border-r last:border-r-0">
+              <div key={day} className="p-4 text-sm font-semibold text-gray-900 text-center border-r last:border-r-0">
                 {day.charAt(0) + day.slice(1).toLowerCase()}
               </div>
             ))}
@@ -266,35 +299,67 @@ const CalendarPage = () => {
 
           {/* Time Slots */}
           <div className="divide-y">
-            {HOURS.map(hour => (
-              <div key={hour} className="grid grid-cols-8">
-                <div className="p-2 text-sm text-gray-500 border-r bg-gray-50 h-16 flex items-center justify-center">
-                  {hour}
-                </div>
-                {WEEKDAYS.map(day => {
-                  const slotBookings = getTimeSlotBookings(day, hour);
-                  return (
-                    <div key={`${day}-${hour}`} className="relative p-2 border-r last:border-r-0 h-16 hover:bg-gray-50 transition-colors">
-                      {slotBookings.map(booking => (
-                        shouldShowBookingInSlot(booking, day, hour) && (
-                          <div
-                            key={booking.id}
-                            className="absolute left-0 right-0 mx-2 bg-indigo-200 hover:bg-indigo-300 text-indigo-900 p-3 rounded-lg shadow-sm transition-colors overflow-hidden"
-                            style={{
-                              height: calculateBookingHeight(booking, day),
-                              zIndex: 10,
-                              top: '0.25rem'
-                            }}
-                          >
-                            {renderBookingContent(booking, day)}
+            {HOURS.map((hour, index) => {
+              const timeOfDay = getTimeOfDay(hour);
+              const isNewSection = index > 0 && getTimeOfDay(HOURS[index - 1]) !== timeOfDay;
+              
+              return (
+                <div key={hour}>
+                  {isNewSection && (
+                    <div className="grid grid-cols-8 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-b border-gray-200 h-8">
+                      <div className="col-span-8 px-4 py-2 text-xs font-medium text-gray-500">
+                        {timeOfDay === 'afternoon' ? (
+                          <div className="flex items-center">
+                            <FontAwesomeIcon icon={faCoffee} className="h-3 w-3 text-orange-500 mr-2" />
+                            Afternoon
                           </div>
-                        )
-                      ))}
+                        ) : timeOfDay === 'evening' ? (
+                          <div className="flex items-center">
+                            <FontAwesomeIcon icon={faMoon} className="h-3 w-3 text-indigo-500 mr-2" />
+                            Evening
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            ))}
+                  )}
+                  <div className={`grid grid-cols-8 ${timeOfDay === 'morning' ? 'bg-yellow-50/30' : timeOfDay === 'afternoon' ? 'bg-orange-50/30' : 'bg-indigo-50/30'}`}>
+                    <div className="p-2 text-sm text-gray-500 border-r bg-gray-50/80 h-16 flex items-center justify-center font-medium">
+                      {hour}
+                    </div>
+                    {WEEKDAYS.map(day => {
+                      const slotBookings = getTimeSlotBookings(day, hour);
+                      return (
+                        <div 
+                          key={`${day}-${hour}`} 
+                          className="relative p-2 border-r last:border-r-0 h-16 hover:bg-gray-50/50 transition-colors"
+                          style={{
+                            minHeight: '4rem',
+                            height: '100%'
+                          }}
+                        >
+                          {slotBookings.map(booking => (
+                            shouldShowBookingInSlot(booking, day, hour) && (
+                              <div
+                                key={booking.id}
+                                className="absolute left-0 right-0 mx-2 bg-white border border-indigo-200 hover:bg-indigo-50 text-indigo-900 p-3 rounded-lg shadow-sm transition-colors overflow-hidden"
+                                style={{
+                                  height: calculateBookingHeight(booking, day),
+                                  zIndex: 10,
+                                  top: '0.25rem',
+                                  marginBottom: '0.25rem'
+                                }}
+                              >
+                                {renderBookingContent(booking, day)}
+                              </div>
+                            )
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
