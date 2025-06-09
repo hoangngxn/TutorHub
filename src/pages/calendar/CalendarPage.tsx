@@ -28,7 +28,7 @@ const CalendarPage = () => {
       const confirmedBookings = await Promise.all(response.data
         .filter((booking: Booking) => booking.status === 'CONFIRMED')
         .map(async (booking: any) => {
-          let tutorInfo, studentInfo, postTitle;
+          let tutorInfo, studentInfo, postTitle, schedules;
           
           try {
             const tutorResponse = await api.get(`/api/auth/users/${booking.tutorId}`);
@@ -65,16 +65,20 @@ const CalendarPage = () => {
           try {
             const postResponse = await api.get(`/api/posts/${booking.postId}`);
             postTitle = postResponse.data.title;
+            // Get schedules from post response if available
+            schedules = postResponse.data.schedules || [];
           } catch (error) {
             console.error(`Error fetching post info for ID ${booking.postId}:`, error);
             postTitle = booking.subject;
+            schedules = booking.schedules || [];
           }
           
           return {
             ...booking,
             tutorInfo,
             studentInfo,
-            postTitle
+            postTitle,
+            schedules: Array.isArray(schedules) ? schedules : []
           };
         }));
       
