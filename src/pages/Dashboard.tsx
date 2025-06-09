@@ -108,14 +108,17 @@ export default function Dashboard() {
 
   // Add helper function to check for schedule overlaps
   const hasScheduleOverlap = (post: Post): boolean => {
-    if (!userBookings) return false; // Handle case when userBookings is not loaded yet
+    if (!userBookings || !post.schedules) return false;
+    
     return userBookings.some((booking: Booking) => 
-      booking.status !== 'CANCELED' && // Only check non-canceled bookings
+      booking.status !== 'CANCELED' &&
+      booking.schedules && Array.isArray(booking.schedules) &&
       booking.schedules.some(bookingSchedule =>
         post.schedules.some(postSchedule => 
-          bookingSchedule.weekday === postSchedule.weekday && // Same weekday
-          parseInt(bookingSchedule.startHour) < parseInt(postSchedule.endHour) && // Booking starts before post ends
-          parseInt(postSchedule.startHour) < parseInt(bookingSchedule.endHour) // Post starts before booking ends
+          bookingSchedule && postSchedule &&
+          bookingSchedule.weekday === postSchedule.weekday &&
+          parseInt(bookingSchedule.startHour) < parseInt(postSchedule.endHour) &&
+          parseInt(postSchedule.startHour) < parseInt(bookingSchedule.endHour)
         )
       )
     );

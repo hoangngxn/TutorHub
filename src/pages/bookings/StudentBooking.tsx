@@ -70,7 +70,7 @@ export default function StudentBooking() {
     try {
       const response = await api.get('/api/bookings');
       const enhancedBookings = await Promise.all(response.data.map(async (booking: any) => {
-        let studentInfo, tutorInfo, hasReview = false, postTitle;
+        let tutorInfo, hasReview = false, postTitle, schedules;
         
         try {
           const tutorResponse = await api.get(`/api/auth/users/${booking.tutorId}`);
@@ -91,16 +91,22 @@ export default function StudentBooking() {
         try {
           const postResponse = await api.get(`/api/posts/${booking.postId}`);
           postTitle = postResponse.data.title;
+          // Get schedules from post response if available
+          schedules = postResponse.data.schedules || [];
         } catch (error) {
           console.error(`Error fetching post info for ID ${booking.postId}:`, error);
           postTitle = booking.subject;
+          schedules = booking.schedules || [];
         }
 
         if (booking.status === 'COMPLETED') {
           try {
             const reviewResponse = await api.get(`/api/reviews/booking/${booking.id}`);
             hasReview = !!reviewResponse.data;
-          } catch (error) {
+          } catch (error: any) {
+            if (error.response?.status !== 403) {
+              console.error(`Error fetching review info for booking ${booking.id}:`, error);
+            }
             hasReview = false;
           }
         }
@@ -109,7 +115,8 @@ export default function StudentBooking() {
           ...booking,
           tutorInfo,
           hasReview,
-          postTitle
+          postTitle,
+          schedules: Array.isArray(schedules) ? schedules : (Array.isArray(booking.schedules) ? booking.schedules : [])
         };
       }));
       

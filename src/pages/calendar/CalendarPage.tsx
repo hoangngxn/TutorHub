@@ -7,6 +7,17 @@ import type { Schedule, EnhancedBooking } from '../../types/booking';
 
 interface Booking extends EnhancedBooking {}
 
+interface SubjectColorScheme {
+  bg: string;
+  border: string;
+  hover: string;
+  text: string;
+}
+
+type SubjectColors = {
+  [key: string]: SubjectColorScheme;
+};
+
 const WEEKDAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
 const HOURS = Array.from({ length: 15 }, (_, i) => `${(i + 7).toString().padStart(2, '0')}:00`); // 7:00 to 22:00
 
@@ -15,6 +26,69 @@ const getTimeOfDay = (hour: string) => {
   if (hourNum >= 7 && hourNum < 12) return 'morning';
   if (hourNum >= 12 && hourNum < 18) return 'afternoon';
   return 'evening';
+};
+
+const SUBJECT_COLORS: SubjectColors = {
+  "Ngữ văn": {
+    bg: "bg-rose-50",
+    border: "border-rose-200",
+    hover: "hover:bg-rose-100",
+    text: "text-rose-900"
+  },
+  "Toán": {
+    bg: "bg-blue-50",
+    border: "border-blue-200",
+    hover: "hover:bg-blue-100",
+    text: "text-blue-900"
+  },
+  "Tiếng Anh": {
+    bg: "bg-violet-50",
+    border: "border-violet-200",
+    hover: "hover:bg-violet-100",
+    text: "text-violet-900"
+  },
+  "Giáo dục kinh tế và pháp luật": {
+    bg: "bg-amber-50",
+    border: "border-amber-200",
+    hover: "hover:bg-amber-100",
+    text: "text-amber-900"
+  },
+  "Lịch sử": {
+    bg: "bg-brown-50",
+    border: "border-yellow-200",
+    hover: "hover:bg-yellow-100",
+    text: "text-yellow-900"
+  },
+  "Địa lí": {
+    bg: "bg-emerald-50",
+    border: "border-emerald-200",
+    hover: "hover:bg-emerald-100",
+    text: "text-emerald-900"
+  },
+  "Hóa học": {
+    bg: "bg-purple-50",
+    border: "border-purple-200",
+    hover: "hover:bg-purple-100",
+    text: "text-purple-900"
+  },
+  "Vật lí": {
+    bg: "bg-cyan-50",
+    border: "border-cyan-200",
+    hover: "hover:bg-cyan-100",
+    text: "text-cyan-900"
+  },
+  "Sinh học": {
+    bg: "bg-green-50",
+    border: "border-green-200",
+    hover: "hover:bg-green-100",
+    text: "text-green-900"
+  },
+  "Tin học": {
+    bg: "bg-indigo-50",
+    border: "border-indigo-200",
+    hover: "hover:bg-indigo-100",
+    text: "text-indigo-900"
+  }
 };
 
 const CalendarPage = () => {
@@ -180,10 +254,17 @@ const CalendarPage = () => {
     const schedule = getScheduleForWeekday(booking, weekday);
     if (!schedule) return null;
 
+    const subjectColors = SUBJECT_COLORS[booking.subject] || {
+      bg: "bg-gray-50",
+      border: "border-gray-200",
+      hover: "hover:bg-gray-100",
+      text: "text-gray-900"
+    };
+
     if (user?.role === 'STUDENT') {
       return (
         <>
-          <div className="font-medium text-sm mb-1">{booking.postTitle || booking.subject}</div>
+          <div className={`font-medium text-sm mb-1 ${subjectColors.text}`}>{booking.postTitle || booking.subject}</div>
           <div className="flex items-center text-xs text-indigo-700 mb-1">
             <FontAwesomeIcon icon={faClock} className="h-3 w-3 mr-1" />
             {formatBookingTime(schedule)}
@@ -195,10 +276,9 @@ const CalendarPage = () => {
         </>
       );
     } else {
-      // For tutors, show a simpler view with just the post title and time
       return (
         <>
-          <div className="font-medium text-sm mb-1">{booking.postTitle || booking.subject}</div>
+          <div className={`font-medium text-sm mb-1 ${subjectColors.text}`}>{booking.postTitle || booking.subject}</div>
           <div className="flex items-center text-xs text-indigo-700">
             <FontAwesomeIcon icon={faClock} className="h-3 w-3 mr-1" />
             {formatBookingTime(schedule)}
@@ -288,10 +368,10 @@ const CalendarPage = () => {
         {/* Calendar Grid */}
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           {/* Weekday Headers */}
-          <div className="grid grid-cols-8 border-b bg-gradient-to-r from-gray-50 to-gray-100">
-            <div className="p-4 text-sm font-medium text-gray-500 border-r">Time</div>
+          <div className="grid grid-cols-8 border-b bg-gradient-to-r from-indigo-600 to-indigo-800 text-white">
+            <div className="p-5 text-base font-bold border-r border-indigo-500/30">Time</div>
             {WEEKDAYS.map(day => (
-              <div key={day} className="p-4 text-sm font-semibold text-gray-900 text-center border-r last:border-r-0">
+              <div key={day} className="p-5 text-base font-bold text-center border-r last:border-r-0 border-indigo-500/30">
                 {day.charAt(0) + day.slice(1).toLowerCase()}
               </div>
             ))}
@@ -301,14 +381,19 @@ const CalendarPage = () => {
           <div className="divide-y">
             {HOURS.map((hour, index) => {
               const timeOfDay = getTimeOfDay(hour);
-              const isNewSection = index > 0 && getTimeOfDay(HOURS[index - 1]) !== timeOfDay;
+              const isNewSection = index === 0 || getTimeOfDay(HOURS[index - 1]) !== timeOfDay;
               
               return (
                 <div key={hour}>
                   {isNewSection && (
                     <div className="grid grid-cols-8 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-b border-gray-200 h-8">
                       <div className="col-span-8 px-4 py-2 text-xs font-medium text-gray-500">
-                        {timeOfDay === 'afternoon' ? (
+                        {timeOfDay === 'morning' ? (
+                          <div className="flex items-center">
+                            <FontAwesomeIcon icon={faSun} className="h-3 w-3 text-yellow-500 mr-2" />
+                            Morning
+                          </div>
+                        ) : timeOfDay === 'afternoon' ? (
                           <div className="flex items-center">
                             <FontAwesomeIcon icon={faCoffee} className="h-3 w-3 text-orange-500 mr-2" />
                             Afternoon
@@ -341,7 +426,13 @@ const CalendarPage = () => {
                             shouldShowBookingInSlot(booking, day, hour) && (
                               <div
                                 key={booking.id}
-                                className="absolute left-0 right-0 mx-2 bg-white border border-indigo-200 hover:bg-indigo-50 text-indigo-900 p-3 rounded-lg shadow-sm transition-colors overflow-hidden"
+                                className={`absolute left-0 right-0 mx-2 ${
+                                  SUBJECT_COLORS[booking.subject]?.bg || 'bg-gray-50'
+                                } ${
+                                  SUBJECT_COLORS[booking.subject]?.border || 'border-gray-200'
+                                } ${
+                                  SUBJECT_COLORS[booking.subject]?.hover || 'hover:bg-gray-100'
+                                } border p-3 rounded-lg shadow-sm transition-colors overflow-hidden`}
                                 style={{
                                   height: calculateBookingHeight(booking, day),
                                   zIndex: 10,

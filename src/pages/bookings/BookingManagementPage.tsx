@@ -20,7 +20,7 @@ interface BookingItem {
   tutorId: string;
   postId: string;
   subject: string;
-  schedule: Schedule;
+  schedules: Schedule[];
   status: 'PENDING' | 'CONFIRMED' | 'CANCELED' | 'COMPLETED';
   createdAt: string;
 }
@@ -42,7 +42,7 @@ interface PostGroup {
   postId: string;
   subject: string;
   postTitle?: string;
-  schedule: Schedule;
+  schedules: Schedule[];
   bookings: EnhancedBooking[];
 }
 
