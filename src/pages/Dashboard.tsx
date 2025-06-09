@@ -100,6 +100,7 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedGrade, setSelectedGrade] = useState('');
+  const [selectedAvailability, setSelectedAvailability] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [bookmarkedPosts, setBookmarkedPosts] = useState<Set<string>>(new Set());
   const [showBookmarkedOnly, setShowBookmarkedOnly] = useState(false);
@@ -216,15 +217,27 @@ export default function Dashboard() {
     }
   };
 
+  const getPostAvailability = (post: Post): 'available' | 'signed-up' | 'full' | 'overlap' | 'progressed' => {
+    if (post.approvedStudent >= post.maxStudent) return 'full';
+    if (hasBookingForPost(post.id)) return 'signed-up';
+    if (isCourseTooProgressed(post)) return 'progressed';
+    if (hasScheduleOverlap(post)) return 'overlap';
+    return 'available';
+  };
+
   const filteredPosts = posts.filter(post => {
-    // Apply subject and grade filters
+    // Apply subject, grade, and bookmark filters
     const matchesSubject = !selectedSubject || post.subject === selectedSubject;
     const matchesGrade = !selectedGrade || post.grade === selectedGrade;
     const matchesBookmark = !showBookmarkedOnly || bookmarkedPosts.has(post.id);
     
-    // If search term is empty, only apply subject, grade, and bookmark filters
+    // Apply availability filter
+    const availability = getPostAvailability(post);
+    const matchesAvailability = !selectedAvailability || selectedAvailability === availability;
+    
+    // If search term is empty, only apply other filters
     if (!searchTerm) {
-      return matchesSubject && matchesGrade && matchesBookmark;
+      return matchesSubject && matchesGrade && matchesBookmark && matchesAvailability;
     }
     
     // Search across all relevant fields
@@ -239,7 +252,7 @@ export default function Dashboard() {
       (post.tutorInfo?.fullname || '').toLowerCase().includes(searchTermLower) ||
       (post.tutorInfo?.username || '').toLowerCase().includes(searchTermLower);
     
-    return matchesSearch && matchesSubject && matchesGrade && matchesBookmark;
+    return matchesSearch && matchesSubject && matchesGrade && matchesBookmark && matchesAvailability;
   });
 
   const subjects = Array.from(new Set(posts.map(post => post.subject)));
@@ -404,6 +417,20 @@ export default function Dashboard() {
                   ))}
                 </select>
               </div>
+              <div>
+                <select
+                  value={selectedAvailability}
+                  onChange={(e) => setSelectedAvailability(e.target.value)}
+                  className="block w-full pl-3 pr-10 py-2 border border-indigo-300 bg-white bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-white focus:border-white sm:text-sm rounded-md text-gray-900"
+                >
+                  <option value="">All Availability</option>
+                  <option value="available">Available to Sign Up</option>
+                  <option value="signed-up">Already Signed Up</option>
+                  <option value="full">Class Full</option>
+                  <option value="overlap">Schedule Overlap</option>
+                  <option value="progressed">Course In Progress</option>
+                </select>
+              </div>
               {isAuthenticated && (
                 <button
                   onClick={() => setShowBookmarkedOnly(!showBookmarkedOnly)}
@@ -417,7 +444,7 @@ export default function Dashboard() {
                     icon={showBookmarkedOnly ? faBookmarkSolid : faBookmarkRegular} 
                     className="mr-2" 
                   />
-                  {showBookmarkedOnly ? 'Showing Bookmarked' : 'Show Bookmarked'}
+                  {showBookmarkedOnly ? 'Bookmarked' : 'Bookmarked'}
                 </button>
               )}
             </div>
