@@ -1,6 +1,6 @@
 # TutorHub - Tutoring Platform Frontend
 
-![Main Page Preview](image/main.png)
+![Main Page Preview](images/main.png)
 
 A modern React application for connecting tutors and students. This platform allows tutors to create and manage tutoring posts, while students can browse available tutors, book sessions, and leave reviews.
 
